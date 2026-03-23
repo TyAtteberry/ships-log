@@ -660,6 +660,74 @@
   .toggle-icon.open { transform: rotate(180deg); }
 
   .settings-label { font-size: 14px; color: var(--text-light); }
+
+  /* SCAN BUTTON */
+  .scan-btn {
+    width: 100%;
+    padding: 13px 16px;
+    background: rgba(201,168,76,0.08);
+    border: 1px dashed rgba(201,168,76,0.4);
+    border-radius: 9px;
+    color: var(--gold);
+    font-family: 'Source Code Pro', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .scan-btn:active { background: rgba(201,168,76,0.15); }
+
+  .scan-btn input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .scan-btn.scanning {
+    pointer-events: none;
+    opacity: 0.7;
+    border-style: solid;
+  }
+
+  .scan-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(201,168,76,0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SCAN RESULT BANNER */
+  .scan-result {
+    background: rgba(42,138,122,0.1);
+    border: 1px solid rgba(42,138,122,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: var(--teal-light);
+    display: none;
+    line-height: 1.7;
+  }
+
+  .scan-result.visible { display: block; }
+  .scan-result .scan-title { font-size: 10px; color: var(--gold-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
   .settings-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
   /* WATCH SCHEDULE */
@@ -874,6 +942,15 @@
 
   <div class="section-label">Position &amp; Navigation</div>
   <div class="card">
+    <div class="scan-btn" id="scan-btn">
+      <input type="file" accept="image/*" capture="environment" id="scan-input" onchange="scanChartPlotter(event)" />
+      <span id="scan-btn-icon">📷</span>
+      <span id="scan-btn-text">Scan Chart Plotter to Auto-Fill</span>
+    </div>
+    <div class="scan-result" id="scan-result">
+      <div class="scan-title">✓ Auto-filled from chart plotter</div>
+      <div id="scan-summary"></div>
+    </div>
     <div class="grid-2">
       <div class="field">
         <label>Latitude</label>
@@ -1447,6 +1524,152 @@
       reader.onload = e => { photos.push(e.target.result); renderPhotoPreviews(); };
       reader.readAsDataURL(file);
     });
+  }
+
+  // ── CHART PLOTTER SCAN ───────────────────────────────────────
+  function scanChartPlotter(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('scan-btn');
+    const btnText = document.getElementById('scan-btn-text');
+    const btnIcon = document.getElementById('scan-btn-icon');
+
+    // Show scanning state
+    btn.classList.add('scanning');
+    btnIcon.outerHTML = '<div class="scan-spinner" id="scan-btn-icon"></div>';
+    btnText.textContent = 'Reading chart plotter...';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      const mimeType = file.type || 'image/jpeg';
+
+      // Save photo to log entry photos too
+      photos.push(e.target.result);
+      renderPhotoPreviews();
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            messages: [{
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: { type: 'base64', media_type: mimeType, data: base64 }
+                },
+                {
+                  type: 'text',
+                  text: `You are reading a marine chart plotter screen. Extract every navigation value you can read and return ONLY a JSON object with these fields (use null for anything not visible):
+{
+  "time": "HH:MM",
+  "lat": "degrees minutes direction as shown",
+  "lon": "degrees minutes direction as shown",
+  "cog": number or null,
+  "sog": number or null,
+  "hdg": number or null,
+  "log": number or null,
+  "tws": number or null,
+  "twd": number or null,
+  "awa": number or null,
+  "aws": number or null,
+  "depth": number or null,
+  "waypoint": "waypoint name if shown" or null,
+  "wpt_dist": number or null
+}
+Return only the JSON, no explanation, no markdown.`
+                }
+              ]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        const raw = data.content?.[0]?.text || '{}';
+
+        let nav;
+        try { nav = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+        catch(e) { nav = {}; }
+
+        // Fill form fields
+        const filled = [];
+
+        if (nav.time) {
+          document.getElementById('entry-time').value = nav.time.substring(0,5);
+          filled.push('Time: ' + nav.time);
+        }
+        if (nav.lat) {
+          document.getElementById('lat').value = nav.lat;
+          filled.push('Lat: ' + nav.lat);
+        }
+        if (nav.lon) {
+          document.getElementById('lon').value = nav.lon;
+          filled.push('Lon: ' + nav.lon);
+        }
+        if (nav.cog !== null && nav.cog !== undefined) {
+          document.getElementById('cog').value = nav.cog;
+          updateCompass(nav.cog);
+          filled.push('COG: ' + nav.cog + '°');
+        }
+        if (nav.sog !== null && nav.sog !== undefined) {
+          document.getElementById('sog').value = nav.sog;
+          filled.push('SOG: ' + nav.sog + ' kt');
+        }
+        if (nav.log !== null && nav.log !== undefined) {
+          document.getElementById('log-nm').value = nav.log;
+          filled.push('Log: ' + nav.log + ' nm');
+        }
+        if (nav.tws !== null && nav.tws !== undefined) {
+          document.getElementById('wind-spd').value = nav.tws;
+          updateBeaufort(nav.tws);
+          filled.push('TWS: ' + nav.tws + ' kt');
+        }
+        if (nav.twd !== null && nav.twd !== undefined) {
+          document.getElementById('wind-dir').value = nav.twd;
+          filled.push('TWD: ' + nav.twd + '°');
+        }
+        if (nav.depth !== null && nav.depth !== undefined) {
+          document.getElementById('depth').value = nav.depth;
+          // Auto-open depth section
+          document.getElementById('depth-body').classList.add('open');
+          document.getElementById('depth-chev').classList.add('open');
+          filled.push('Depth: ' + nav.depth + ' ft');
+        }
+        if (nav.waypoint) {
+          document.getElementById('waypoint').value = nav.waypoint;
+          filled.push('WPT: ' + nav.waypoint);
+        }
+
+        // Show result banner
+        const resultEl = document.getElementById('scan-result');
+        const summaryEl = document.getElementById('scan-summary');
+        if (filled.length > 0) {
+          summaryEl.textContent = filled.join('  ·  ');
+          resultEl.classList.add('visible');
+        }
+
+        // Reset button
+        btn.classList.remove('scanning');
+        document.getElementById('scan-btn-icon').outerHTML = '<span id="scan-btn-icon">✓</span>';
+        btnText.textContent = 'Scan again to update';
+
+      } catch(err) {
+        btn.classList.remove('scanning');
+        document.getElementById('scan-btn-icon').outerHTML = '<span id="scan-btn-icon">📷</span>';
+        btnText.textContent = 'Scan Chart Plotter to Auto-Fill';
+        showToast('Scan failed — fill in manually');
+      }
+
+      // Reset file input so same photo can be re-scanned
+      event.target.value = '';
+    };
+
+    reader.readAsDataURL(file);
   }
 
   function renderPhotoPreviews() {
