@@ -2461,7 +2461,7 @@ Return only the JSON object, no explanation, no markdown fences.` }
     strip.classList.add('visible');
     list.innerHTML = active.map(a => {
       const m = alertMeta[a.type] || alertMeta.other;
-      const statusLabel = a.status === 'acknowledged' ? '· Ack'd' : a.status === 'action-taken' ? '· Action taken' : '· OPEN';
+      const statusLabel = a.status === 'acknowledged' ? '· Ackd' : a.status === 'action-taken' ? '· Action taken' : '· OPEN';
       return `<div class="strip-alert-item"><span class="strip-alert-icon">${m.icon}</span><span><strong style="color:var(--text-light)">${m.label}</strong> — ${a.text} <span style="color:var(--gold-dim)">${statusLabel}</span></span></div>`;
     }).join('');
   }
