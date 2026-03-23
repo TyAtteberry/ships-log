@@ -1737,7 +1737,19 @@ Return only the JSON object, no explanation, no markdown fences.` }
 
       const filled = [];
 
-      if (nav.time) { document.getElementById('entry-time').value = nav.time.substring(0,5); filled.push('Time: ' + nav.time); }
+      // Always stamp current UTC date
+      const scanNow = new Date();
+      document.getElementById('entry-date').value = scanNow.toLocaleDateString('en-GB');
+
+      // Use plotter time if readable, otherwise current UTC time
+      if (nav.time) {
+        document.getElementById('entry-time').value = nav.time.substring(0,5);
+        filled.push('Time: ' + nav.time + ' (from plotter)');
+      } else {
+        const utc = scanNow.toISOString().substring(11,16);
+        document.getElementById('entry-time').value = utc;
+        filled.push('Time: ' + utc + ' UTC (device)');
+      }
       if (nav.lat) { document.getElementById('lat').value = nav.lat; filled.push('Lat: ' + nav.lat); }
       if (nav.lon) { document.getElementById('lon').value = nav.lon; filled.push('Lon: ' + nav.lon); }
       if (nav.cog != null) { document.getElementById('cog').value = nav.cog; updateCompass(nav.cog); filled.push('COG: ' + nav.cog + '°'); }
