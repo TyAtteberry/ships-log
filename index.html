@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ship's Log — BoatyBall</title>
+<title>Ship's Log — WayMaker Voyages</title>
 <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Source+Code+Pro:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1184,6 +1184,11 @@
   .cwb-name { font-size: 16px; font-weight: 600; color: var(--gold); font-family: 'Bitter', serif; }
   .cwb-time { font-size: 11px; color: var(--text-muted); font-family: 'Source Code Pro', monospace; }
 </style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- QR Code generator -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -1481,6 +1486,68 @@
 
 <!-- SETTINGS PANEL -->
 <div class="panel" id="panel-settings">
+  <!-- VOYAGE JOIN BANNER (shown when joined via QR) -->
+  <div id="joined-voyage-banner" style="display:none; background:rgba(42,138,122,0.1); border:1px solid rgba(42,138,122,0.3); border-radius:10px; padding:14px; margin-bottom:16px;">
+    <div style="font-family:'Source Code Pro',monospace; font-size:10px; color:var(--teal-light); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">✓ Joined Shared Voyage</div>
+    <div id="joined-voyage-name" style="font-size:16px; font-weight:600; color:var(--text-light); font-family:'Bitter',serif;"></div>
+    <div id="joined-voyage-code" style="font-size:11px; color:var(--text-muted); font-family:'Source Code Pro',monospace; margin-top:2px;"></div>
+    <button onclick="leaveVoyage()" style="margin-top:10px; padding:7px 14px; background:transparent; border:1px solid rgba(192,57,43,0.4); border-radius:6px; color:#e07060; font-size:12px; font-family:'Source Code Pro',monospace; cursor:pointer;">Leave Voyage</button>
+  </div>
+
+  <div class="section-label" style="margin-top:0;">Voyage Sync</div>
+  <div class="card" id="voyage-sync-card">
+    <div id="voyage-sync-captain">
+      <div class="settings-label">Create a Shared Voyage</div>
+      <div class="settings-sub" style="margin-bottom:12px;">Generate a voyage code and QR — crew scans to join and all entries sync in real time.</div>
+      <div class="field">
+        <label>Voyage Name</label>
+        <input type="text" id="sync-voyage-name" placeholder="BVI May 2026" />
+      </div>
+      <div class="field">
+        <label>Vessel Name</label>
+        <input type="text" id="sync-vessel-name" placeholder="S/V Rum Runner" />
+      </div>
+      <div class="field">
+        <label>Captain Name</label>
+        <input type="text" id="sync-captain-name" placeholder="Your name" />
+      </div>
+      <button class="btn-submit" style="margin-top:4px;" onclick="createVoyage()">⚓ Create Shared Voyage</button>
+    </div>
+
+    <!-- Active voyage display -->
+    <div id="voyage-active-display" style="display:none;">
+      <div style="font-family:'Source Code Pro',monospace; font-size:10px; color:var(--gold-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Active Voyage</div>
+      <div id="voyage-active-name" style="font-size:18px; font-weight:700; color:var(--gold); font-family:'Bitter',serif; margin-bottom:2px;"></div>
+      <div id="voyage-active-vessel" style="font-size:13px; color:var(--text-muted); font-family:'Source Code Pro',monospace; margin-bottom:16px;"></div>
+
+      <div style="font-family:'Source Code Pro',monospace; font-size:10px; color:var(--gold-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">Voyage Code</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <div id="voyage-code-display" style="font-family:'Source Code Pro',monospace; font-size:22px; font-weight:700; color:var(--gold); letter-spacing:0.15em; background:rgba(201,168,76,0.08); padding:10px 16px; border-radius:8px; border:1px solid rgba(201,168,76,0.25);"></div>
+        <button onclick="copyVoyageCode()" style="padding:10px 14px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--gold); font-size:12px; font-family:'Source Code Pro',monospace; cursor:pointer;">Copy</button>
+      </div>
+
+      <div style="font-family:'Source Code Pro',monospace; font-size:10px; color:var(--gold-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Share QR Code</div>
+      <div style="background:white; display:inline-block; padding:12px; border-radius:10px; margin-bottom:16px;">
+        <div id="voyage-qr"></div>
+      </div>
+      <div style="font-size:11px; color:var(--text-muted); font-family:'Source Code Pro',monospace; margin-bottom:16px;">Crew scans this to join the shared logbook instantly</div>
+
+      <div style="display:flex; gap:8px;">
+        <button class="btn-outline" onclick="archiveVoyage()" style="border-color:var(--red); color:var(--red);">Archive Voyage</button>
+      </div>
+    </div>
+
+    <!-- Join voyage -->
+    <div style="border-top:1px solid rgba(201,168,76,0.1); margin-top:16px; padding-top:16px;">
+      <div class="settings-label" style="margin-bottom:6px;">Join an Existing Voyage</div>
+      <div class="settings-sub" style="margin-bottom:10px;">Enter a voyage code shared by the captain.</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="join-code-input" placeholder="e.g. BVI-X7K" style="text-transform:uppercase; letter-spacing:0.1em;" />
+        <button class="btn-outline" style="margin-top:0; width:auto; padding:10px 16px; white-space:nowrap;" onclick="joinVoyage()">Join</button>
+      </div>
+    </div>
+  </div>
+
   <div class="section-label">Vessel Information</div>
   <div class="card">
     <div class="field">
@@ -1625,11 +1692,172 @@
 <script>
   let photos = [];
   let apiKey = localStorage.getItem('shiplog_apikey') || '';
-  let pendingScan = null; // holds base64 + mimeType while waiting for key
+  let pendingScan = null;
   let watchType = 'sail';
   let entries = JSON.parse(localStorage.getItem('shiplog_entries') || '[]');
   let settings = JSON.parse(localStorage.getItem('shiplog_settings') || '{}');
   let crew = JSON.parse(localStorage.getItem('shiplog_crew') || '[]');
+
+  // ── FIREBASE ─────────────────────────────────────────────────
+  const FB_CONFIG = {
+    apiKey: "AIzaSyDgB74fmzbyQzcMjQjdrecDoG_581K_HXc",
+    authDomain: "waymaker-ships-log.firebaseapp.com",
+    databaseURL: "https://waymaker-ships-log-default-rtdb.firebaseio.com",
+    projectId: "waymaker-ships-log",
+    storageBucket: "waymaker-ships-log.firebasestorage.app",
+    messagingSenderId: "516687016270",
+    appId: "1:516687016270:web:5f2befbd65de5262e06e1f"
+  };
+
+  firebase.initializeApp(FB_CONFIG);
+  const db = firebase.database();
+
+  let voyageCode = localStorage.getItem('shiplog_voyagecode') || '';
+  let voyageRole = localStorage.getItem('shiplog_voyagerole') || '';
+  let fbListeners = [];
+
+  function genVoyageCode(vesselName) {
+    const prefix = (vesselName || 'WM').replace(/[^A-Z]/gi,'').substring(0,3).toUpperCase() || 'WM';
+    const rand = Math.random().toString(36).substring(2,5).toUpperCase();
+    return prefix + '-' + rand;
+  }
+
+  function getVoyageRef(code) { return db.ref('voyages/' + code); }
+
+  function stripPhotos(entry) {
+    const e = Object.assign({}, entry);
+    delete e.photos;
+    return e;
+  }
+
+  function createVoyage() {
+    const vName = document.getElementById('sync-voyage-name').value.trim();
+    const vessel = document.getElementById('sync-vessel-name').value.trim();
+    const captain = document.getElementById('sync-captain-name').value.trim();
+    if (!vName) { showToast('Please enter a voyage name'); return; }
+    const code = genVoyageCode(vessel);
+    getVoyageRef(code).set({ name: vName, vessel: vessel||'—', captain: captain||'—', createdAt: new Date().toISOString(), status: 'active' }).then(() => {
+      voyageCode = code; voyageRole = 'captain';
+      localStorage.setItem('shiplog_voyagecode', code);
+      localStorage.setItem('shiplog_voyagerole', 'captain');
+      entries.forEach(e => db.ref('voyages/'+code+'/entries/'+e.id).set(stripPhotos(e)));
+      alerts.forEach(a => db.ref('voyages/'+code+'/alerts/'+a.id).set(a));
+      showVoyageActive(code, vName, vessel);
+      attachFirebaseListeners(code);
+      showToast('Voyage created! Share the code with crew.');
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  function joinVoyage() {
+    const code = (document.getElementById('join-code-input').value||'').trim().toUpperCase();
+    if (!code) { showToast('Please enter a voyage code'); return; }
+    getVoyageRef(code).once('value').then(snap => {
+      if (!snap.exists()) { showToast('Voyage not found — check the code'); return; }
+      const data = snap.val();
+      voyageCode = code; voyageRole = 'crew';
+      localStorage.setItem('shiplog_voyagecode', code);
+      localStorage.setItem('shiplog_voyagerole', 'crew');
+      showJoinedBanner(code, data.name, data.vessel);
+      attachFirebaseListeners(code);
+      showToast('Joined ' + data.name + ' ⚓');
+    }).catch(() => showToast('Could not connect — check your connection'));
+  }
+
+  function joinVoyageFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('voyage');
+    if (!code) return;
+    document.getElementById('join-code-input').value = code;
+    joinVoyage();
+  }
+
+  function attachFirebaseListeners(code) {
+    fbListeners.forEach(fn => fn());
+    fbListeners = [];
+    const entriesRef = db.ref('voyages/'+code+'/entries');
+    const eListener = entriesRef.on('value', snap => {
+      if (!snap.exists()) return;
+      const fb = [];
+      snap.forEach(child => {
+        const e = child.val();
+        const local = entries.find(le => le.id === e.id);
+        if (local && local.photos) e.photos = local.photos;
+        fb.push(e);
+      });
+      fb.sort((a,b) => b.id - a.id);
+      entries = fb;
+      localStorage.setItem('shiplog_entries', JSON.stringify(entries));
+      renderEntries();
+    });
+    fbListeners.push(() => entriesRef.off('value', eListener));
+    const alertsRef = db.ref('voyages/'+code+'/alerts');
+    const aListener = alertsRef.on('value', snap => {
+      const fb = [];
+      if (snap.exists()) snap.forEach(child => fb.push(child.val()));
+      fb.sort((a,b) => b.id - a.id);
+      alerts = fb;
+      localStorage.setItem('shiplog_alerts', JSON.stringify(alerts));
+      renderAlerts(); updateAlertBadge(); updateActiveAlertsStrip();
+    });
+    fbListeners.push(() => alertsRef.off('value', aListener));
+  }
+
+  function showVoyageActive(code, name, vessel) {
+    document.getElementById('voyage-sync-captain').style.display = 'none';
+    document.getElementById('voyage-active-display').style.display = 'block';
+    document.getElementById('voyage-active-name').textContent = name;
+    document.getElementById('voyage-active-vessel').textContent = vessel;
+    document.getElementById('voyage-code-display').textContent = code;
+    const qrEl = document.getElementById('voyage-qr');
+    qrEl.innerHTML = '';
+    const url = window.location.origin + window.location.pathname + '?voyage=' + code;
+    new QRCode(qrEl, { text: url, width: 160, height: 160, colorDark: '#000', colorLight: '#fff' });
+  }
+
+  function showJoinedBanner(code, name, vessel) {
+    const banner = document.getElementById('joined-voyage-banner');
+    banner.style.display = 'block';
+    document.getElementById('joined-voyage-name').textContent = name + ' · ' + vessel;
+    document.getElementById('joined-voyage-code').textContent = 'Code: ' + code;
+  }
+
+  function copyVoyageCode() {
+    navigator.clipboard.writeText(voyageCode).then(() => showToast('Code copied!'));
+  }
+
+  function leaveVoyage() {
+    if (!confirm('Leave this voyage? You can rejoin with the code.')) return;
+    fbListeners.forEach(fn => fn()); fbListeners = [];
+    voyageCode = ''; voyageRole = '';
+    localStorage.removeItem('shiplog_voyagecode');
+    localStorage.removeItem('shiplog_voyagerole');
+    document.getElementById('joined-voyage-banner').style.display = 'none';
+    showToast('Left voyage');
+  }
+
+  function archiveVoyage() {
+    if (!confirm('Archive this voyage? CSV will download automatically.')) return;
+    exportCSV();
+    db.ref('voyages/'+voyageCode+'/status').set('archived');
+    fbListeners.forEach(fn => fn()); fbListeners = [];
+    voyageCode = ''; voyageRole = '';
+    localStorage.removeItem('shiplog_voyagecode');
+    localStorage.removeItem('shiplog_voyagerole');
+    document.getElementById('voyage-active-display').style.display = 'none';
+    document.getElementById('voyage-sync-captain').style.display = 'block';
+    showToast('Voyage archived — CSV downloaded');
+  }
+
+  function restoreVoyageState() {
+    if (!voyageCode) return;
+    getVoyageRef(voyageCode).once('value').then(snap => {
+      if (!snap.exists()) return;
+      const data = snap.val();
+      if (voyageRole === 'captain') showVoyageActive(voyageCode, data.name, data.vessel);
+      else showJoinedBanner(voyageCode, data.name, data.vessel);
+      attachFirebaseListeners(voyageCode);
+    });
+  }
 
   const beaufortScale = [
     [0,'Calm'],[1,'Light Air'],[3,'Light Breeze'],[7,'Gentle Breeze'],
@@ -1679,6 +1907,8 @@
   updateAlertBadge();
   updateActiveAlertsStrip();
   renderEntries();
+  restoreVoyageState();
+  joinVoyageFromURL();
 
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -2072,6 +2302,12 @@ Return only the JSON object, no explanation, no markdown fences.` }
 
     entries.unshift(entry);
     localStorage.setItem('shiplog_entries', JSON.stringify(entries));
+
+    // Sync to Firebase if in a shared voyage
+    if (voyageCode) {
+      db.ref('voyages/' + voyageCode + '/entries/' + entry.id).set(stripPhotos(entry));
+    }
+
     showToast('Watch entry logged ⚓');
 
     // Reset fields
@@ -2133,6 +2369,9 @@ Return only the JSON object, no explanation, no markdown fences.` }
 
     alerts.unshift(alert);
     saveAlerts();
+    if (voyageCode) {
+      db.ref('voyages/' + voyageCode + '/alerts/' + alert.id).set(alert);
+    }
     document.getElementById('new-alert-text').value = '';
     renderAlerts();
     updateAlertBadge();
@@ -2197,6 +2436,12 @@ Return only the JSON object, no explanation, no markdown fences.` }
 
   function saveAlerts() {
     localStorage.setItem('shiplog_alerts', JSON.stringify(alerts));
+    // Sync all alert changes to Firebase
+    if (voyageCode) {
+      alerts.forEach(a => {
+        db.ref('voyages/' + voyageCode + '/alerts/' + a.id).set(a);
+      });
+    }
   }
 
   function updateAlertBadge() {
