@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ship's Log — BoatyBall</title>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Source+Code+Pro:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #132040;
+    --navy-light: #1e3360;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: #8a6f32;
+    --teal: #2a8a7a;
+    --teal-light: #3db5a0;
+    --red: #c0392b;
+    --text-light: #f0ece4;
+    --text-muted: #a0a8b8;
+    --border: rgba(201,168,76,0.25);
+    --card-bg: rgba(255,255,255,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--text-light);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--navy-mid);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-brand {
+    font-family: 'Bitter', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .vessel-name {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'Source Code Pro', monospace;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  .vessel-name strong {
+    display: block;
+    color: var(--gold-light);
+    font-size: 13px;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--navy-mid);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+    position: relative;
+  }
+
+  .tab.active { color: var(--gold); }
+
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+    background: var(--gold);
+    border-radius: 2px 2px 0 0;
+  }
+
+  .panel { display: none; padding: 20px; }
+  .panel.active { display: block; }
+
+  .section-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    margin-top: 20px;
+  }
+
+  .section-label:first-child { margin-top: 0; }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 4px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    font-family: 'Source Code Pro', monospace;
+    letter-spacing: 0.06em;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="time"],
+  select,
+  textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 7px;
+    padding: 10px 13px;
+    color: var(--text-light);
+    font-family: 'Source Code Pro', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.07);
+  }
+
+  select option { background: var(--navy-mid); }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* OPTIONAL SECTION */
+  .optional-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-top: 16px;
+    margin-bottom: 0;
+    padding: 10px 0 6px;
+    user-select: none;
+    border-top: 1px solid rgba(201,168,76,0.1);
+  }
+
+  .optional-toggle .opt-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    flex: 1;
+  }
+
+  .opt-pill {
+    font-size: 9px;
+    padding: 2px 8px;
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 10px;
+    color: var(--gold-dim);
+    font-family: 'Source Code Pro', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .opt-chevron {
+    font-size: 10px;
+    color: var(--gold-dim);
+    transition: transform 0.2s;
+  }
+
+  .opt-chevron.open { transform: rotate(180deg); }
+
+  .optional-body { display: none; padding-top: 12px; }
+  .optional-body.open { display: block; }
+
+  /* PHOTO ZONE */
+  .photo-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: rgba(255,255,255,0.02);
+    margin-bottom: 16px;
+  }
+
+  .photo-zone:active { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+
+  .photo-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .photo-zone-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+  .photo-zone-text { font-size: 14px; color: var(--text-muted); }
+  .photo-zone-sub { font-size: 11px; color: var(--gold-dim); margin-top: 4px; font-family: 'Source Code Pro', monospace; }
+
+  .photo-preview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .photo-thumb {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    border: 1px solid var(--border);
+  }
+
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .photo-thumb .remove-photo {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(10,22,40,0.85);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* WATCH BUTTONS */
+  .watch-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .watch-btn {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Source Code Pro', monospace;
+    flex: 1;
+    text-align: center;
+    min-width: 70px;
+  }
+
+  .watch-btn.active {
+    background: rgba(201,168,76,0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* CONDITION BUTTONS */
+  .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .cond-btn {
+    padding: 8px 13px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Source Code Pro', monospace;
+  }
+
+  .cond-btn.active {
+    background: rgba(201,168,76,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* COMPASS */
+  .compass-grid { display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: start; margin-top: 4px; }
+
+  .compass-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .compass {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    position: relative;
+    background: radial-gradient(circle at center, rgba(201,168,76,0.05) 0%, transparent 70%);
+    cursor: pointer;
+  }
+
+  .compass-ring {
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.15);
+  }
+
+  .compass-cardinal {
+    position: absolute;
+    font-size: 9px;
+    font-family: 'Source Code Pro', monospace;
+    color: var(--gold-dim);
+    font-weight: 600;
+  }
+
+  .compass-cardinal.n { top: 4px; left: 50%; transform: translateX(-50%); }
+  .compass-cardinal.s { bottom: 4px; left: 50%; transform: translateX(-50%); }
+  .compass-cardinal.e { right: 4px; top: 50%; transform: translateY(-50%); }
+  .compass-cardinal.w { left: 4px; top: 50%; transform: translateY(-50%); }
+
+  .compass-needle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 38px;
+    margin-left: -1.5px;
+    transform-origin: bottom center;
+    transition: transform 0.3s ease;
+  }
+
+  .needle-north { width: 100%; height: 55%; background: var(--gold); border-radius: 3px 3px 0 0; }
+  .needle-south { width: 100%; height: 45%; background: rgba(201,168,76,0.3); border-radius: 0 0 3px 3px; }
+
+  .compass-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: var(--navy);
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .compass-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 18px;
+    color: var(--gold);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .compass-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'Source Code Pro', monospace;
+    text-align: center;
+  }
+
+  /* BEAUFORT */
+  .beaufort-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .beaufort-bar {
+    flex: 1;
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .beaufort-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--gold), var(--red));
+    transition: width 0.3s;
+  }
+
+  .beaufort-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 95px;
+  }
+
+  /* BEAUFORT BADGE in log entries */
+  .bf-badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .bf-0, .bf-1, .bf-2, .bf-3 { background: rgba(42,138,122,0.2); color: #3db5a0; border: 1px solid rgba(42,138,122,0.35); }
+  .bf-4, .bf-5 { background: rgba(201,168,76,0.15); color: #e8c97a; border: 1px solid rgba(201,168,76,0.3); }
+  .bf-6, .bf-7 { background: rgba(200,100,50,0.15); color: #e09060; border: 1px solid rgba(200,100,50,0.3); }
+  .bf-8, .bf-9, .bf-10, .bf-11, .bf-12 { background: rgba(192,57,43,0.25); color: #f09080; border: 1px solid rgba(192,57,43,0.45); }
+
+  /* SUBMIT */
+  .btn-submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Bitter', serif;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: all 0.15s;
+    margin-top: 20px;
+  }
+
+  .btn-submit:active { transform: scale(0.98); background: var(--gold-light); }
+
+  /* LOG ENTRIES */
+  .log-entry {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    cursor: pointer;
+  }
+
+  .entry-time {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gold);
+  }
+
+  .entry-meta { display: flex; gap: 10px; align-items: center; }
+  .entry-watchman { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .entry-badge {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-family: 'Source Code Pro', monospace;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-sail { background: rgba(42,138,122,0.2); color: #3db5a0; border: 1px solid rgba(42,138,122,0.4); }
+  .badge-motor { background: rgba(201,168,76,0.15); color: #e8c97a; border: 1px solid rgba(201,168,76,0.3); }
+  .badge-anchor { background: rgba(160,168,184,0.1); color: var(--text-muted); border: 1px solid rgba(160,168,184,0.2); }
+
+  .entry-body { padding: 14px 16px; display: none; }
+  .entry-body.open { display: block; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .stat-cell { text-align: center; }
+
+  .stat-val {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-light);
+    display: block;
+  }
+
+  .stat-key {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'Source Code Pro', monospace;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+    display: block;
+  }
+
+  .entry-photos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .entry-photos img {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    aspect-ratio: 4/3;
+    object-fit: cover;
+  }
+
+  .entry-notes {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-style: italic;
+    border-left: 2px solid var(--gold-dim);
+    padding-left: 12px;
+  }
+
+  .entry-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 12px;
+  }
+
+  .entry-divider span {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    color: var(--gold-dim);
+    white-space: nowrap;
+    letter-spacing: 0.08em;
+  }
+
+  .entry-divider::before,
+  .entry-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; display: block; opacity: 0.5; }
+  .empty-state p { font-size: 14px; }
+
+  .voyage-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .voyage-stat { background: var(--navy-mid); padding: 12px 8px; text-align: center; }
+
+  .voyage-stat-val {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gold);
+    display: block;
+  }
+
+  .voyage-stat-key {
+    font-size: 10px;
+    color: var(--text-muted);
+    display: block;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+
+  .btn-outline {
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Source Code Pro', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .btn-outline:active { background: rgba(201,168,76,0.1); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--navy-light);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-family: 'Source Code Pro', monospace;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  .toggle-icon { transition: transform 0.2s; color: var(--text-muted); font-size: 12px; }
+  .toggle-icon.open { transform: rotate(180deg); }
+
+  .settings-label { font-size: 14px; color: var(--text-light); }
+  .settings-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* WATCH SCHEDULE */
+  .schedule-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(201,168,76,0.08);
+  }
+
+  .schedule-row:last-child { border-bottom: none; }
+
+  .schedule-period {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    grid-column: 1 / -1;
+    padding-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .schedule-slot {
+    background: rgba(201,168,76,0.06);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 7px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .slot-time {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: var(--gold-dim);
+    letter-spacing: 0.04em;
+  }
+
+  .slot-name {
+    font-size: 13px;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  .slot-name.unassigned { color: var(--text-muted); font-style: italic; font-weight: 400; }
+
+  .slot-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--gold-dim);
+    font-size: 16px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .slot-btn:active { background: rgba(201,168,76,0.1); }
+
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .schedule-config {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .schedule-preview {
+    position: relative;
+    height: 52px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    display: flex;
+  }
+
+  .preview-segment {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-family: 'Source Code Pro', monospace;
+    overflow: hidden;
+    transition: all 0.3s;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px;
+    text-align: center;
+  }
+
+  .preview-segment.day-seg { background: rgba(201,168,76,0.12); color: var(--gold); }
+  .preview-segment.night-seg { background: rgba(30,51,96,0.8); color: #7090c0; }
+
+  .preview-segment .seg-name { font-size: 8px; color: inherit; opacity: 0.8; white-space: nowrap; overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
+
+  /* LOG INTERVAL */
+  .interval-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .interval-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Source Code Pro', monospace;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .interval-btn.active {
+    background: rgba(201,168,76,0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .interval-btn small { display: block; font-size: 10px; margin-top: 2px; opacity: 0.7; }
+
+  /* CURRENT WATCH BANNER */
+  .current-watch-banner {
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 9px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .current-watch-banner.visible { display: flex; align-items: center; gap: 12px; }
+
+  .cwb-icon { font-size: 22px; flex-shrink: 0; }
+
+  .cwb-label { font-size: 11px; color: var(--text-muted); font-family: 'Source Code Pro', monospace; letter-spacing: 0.06em; }
+  .cwb-name { font-size: 16px; font-weight: 600; color: var(--gold); font-family: 'Bitter', serif; }
+  .cwb-time { font-size: 11px; color: var(--text-muted); font-family: 'Source Code Pro', monospace; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">⚓ Ship's Log</div>
+  <div class="vessel-name">
+    <strong id="vessel-name-display">S/V —</strong>
+    <span id="voyage-name-display">Voyage Log</span>
+  </div>
+</nav>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('log')">📋 Log Entry</button>
+  <button class="tab" onclick="switchTab('entries')">📖 Logbook</button>
+  <button class="tab" onclick="switchTab('settings')">⚙️ Setup</button>
+</div>
+
+<!-- LOG ENTRY PANEL -->
+<div class="panel active" id="panel-log">
+
+  <div id="current-watch-banner" class="current-watch-banner">
+    <div class="cwb-icon">🧭</div>
+    <div>
+      <div class="cwb-label">CURRENT WATCH</div>
+      <div class="cwb-name" id="cwb-name">—</div>
+      <div class="cwb-time" id="cwb-time">—</div>
+    </div>
+  </div>
+
+  <div class="section-label">Watch Information</div>
+  <div class="card">
+    <div class="field">
+      <label>Watchkeeper Name</label>
+      <input type="text" id="watchkeeper" placeholder="Your name" />
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Date</label>
+        <input type="text" id="entry-date" readonly />
+      </div>
+      <div class="field">
+        <label>Time (UTC)</label>
+        <input type="time" id="entry-time" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Watch Type</label>
+      <div class="watch-btns">
+        <button class="watch-btn active" data-watch="sail" onclick="setWatch(this)">⛵ Sailing</button>
+        <button class="watch-btn" data-watch="motor" onclick="setWatch(this)">🔧 Motoring</button>
+        <button class="watch-btn" data-watch="motor-sail" onclick="setWatch(this)">⚡ Motor-sail</button>
+        <button class="watch-btn" data-watch="anchor" onclick="setWatch(this)">⚓ At Anchor</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Position &amp; Navigation</div>
+  <div class="card">
+    <div class="grid-2">
+      <div class="field">
+        <label>Latitude</label>
+        <input type="text" id="lat" placeholder="18° 26.3' N" />
+      </div>
+      <div class="field">
+        <label>Longitude</label>
+        <input type="text" id="lon" placeholder="064° 37.8' W" />
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="field">
+        <label>COG (°)</label>
+        <input type="number" id="cog" min="0" max="359" placeholder="270" oninput="updateCompass(this.value)" />
+      </div>
+      <div class="field">
+        <label>SOG (kts)</label>
+        <input type="number" id="sog" min="0" max="20" step="0.1" placeholder="6.4" />
+      </div>
+      <div class="field">
+        <label>Log (nm)</label>
+        <input type="number" id="log-nm" min="0" step="0.1" placeholder="142.3" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Waypoint / Destination</label>
+      <input type="text" id="waypoint" placeholder="Road Town" />
+    </div>
+
+    <div class="compass-grid">
+      <div class="compass-wrap">
+        <div class="compass" onclick="compassClick(event)">
+          <div class="compass-ring"></div>
+          <span class="compass-cardinal n">N</span>
+          <span class="compass-cardinal s">S</span>
+          <span class="compass-cardinal e">E</span>
+          <span class="compass-cardinal w">W</span>
+          <div class="compass-needle" id="heading-compass" style="transform: translateX(-50%) rotate(0deg)">
+            <div class="needle-north"></div>
+            <div class="needle-south"></div>
+          </div>
+          <div class="compass-dot"></div>
+        </div>
+        <div class="compass-label" id="heading-deg">000°</div>
+        <div class="compass-sub">tap to set COG</div>
+      </div>
+      <div>
+        <div class="field">
+          <label>True Wind Dir (°)</label>
+          <input type="number" id="wind-dir" min="0" max="359" placeholder="045" />
+        </div>
+        <div class="field">
+          <label>Wind Speed (kts)</label>
+          <input type="number" id="wind-spd" min="0" max="80" placeholder="18" oninput="updateBeaufort(this.value)" />
+        </div>
+        <div class="beaufort-row">
+          <div class="beaufort-bar"><div class="beaufort-fill" id="beaufort-fill" style="width:0%"></div></div>
+          <span class="beaufort-label" id="beaufort-label">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Sea &amp; Weather Conditions</div>
+  <div class="card">
+    <div class="field">
+      <label>Sea State</label>
+      <div class="btn-group" id="sea-state-btns">
+        <button class="cond-btn" onclick="toggleSingle(this,'sea-state-btns')">Calm</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sea-state-btns')">Slight</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sea-state-btns')">Moderate</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sea-state-btns')">Rough</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sea-state-btns')">Very Rough</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top: 12px;">
+      <label>Sky Conditions</label>
+      <div class="btn-group" id="sky-btns">
+        <button class="cond-btn" onclick="toggleSingle(this,'sky-btns')">Clear</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sky-btns')">Partly Cloudy</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sky-btns')">Overcast</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sky-btns')">Squall</button>
+        <button class="cond-btn" onclick="toggleSingle(this,'sky-btns')">Rain</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label>Visibility</label>
+      <select id="visibility">
+        <option value="">Select (optional)</option>
+        <option>Excellent (10nm+)</option>
+        <option>Good (5-10nm)</option>
+        <option>Moderate (2-5nm)</option>
+        <option>Poor (&lt;2nm)</option>
+        <option>Fog</option>
+      </select>
+    </div>
+
+    <!-- Depth — optional, auto-opens for anchor watch -->
+    <div class="optional-toggle" onclick="toggleOpt('depth-body','depth-chev')">
+      <span class="opt-label">Depth</span>
+      <span class="opt-pill">optional · anchor watch</span>
+      <span class="opt-chevron" id="depth-chev">▼</span>
+    </div>
+    <div class="optional-body" id="depth-body">
+      <div class="field">
+        <label>Depth (ft)</label>
+        <input type="number" id="depth" placeholder="48" />
+      </div>
+    </div>
+
+    <!-- Barometer — optional -->
+    <div class="optional-toggle" onclick="toggleOpt('baro-body','baro-chev')">
+      <span class="opt-label">Barometer</span>
+      <span class="opt-pill">optional</span>
+      <span class="opt-chevron" id="baro-chev">▼</span>
+    </div>
+    <div class="optional-body" id="baro-body">
+      <div class="field">
+        <label>Barometer (mb)</label>
+        <input type="number" id="baro" placeholder="1015" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Engine — fully optional card -->
+  <div class="optional-toggle" style="border-top: none; padding-top:0;" onclick="toggleOpt('engine-body','engine-chev')">
+    <span class="opt-label">Engine &amp; Fuel</span>
+    <span class="opt-pill">optional</span>
+    <span class="opt-chevron" id="engine-chev">▼</span>
+  </div>
+  <div class="optional-body" id="engine-body">
+    <div class="card" style="margin-top: 6px;">
+      <div class="grid-3">
+        <div class="field">
+          <label>Eng Hours</label>
+          <input type="number" id="eng-hours" placeholder="312.4" step="0.1" />
+        </div>
+        <div class="field">
+          <label>RPM</label>
+          <input type="number" id="rpm" placeholder="2200" />
+        </div>
+        <div class="field">
+          <label>Fuel (L)</label>
+          <input type="number" id="fuel" placeholder="45" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:16px;">Chart Plotter Photo</div>
+  <div id="photo-preview-grid" class="photo-preview" style="display:none;"></div>
+  <div class="photo-zone">
+    <input type="file" accept="image/*" capture="environment" multiple onchange="handlePhotos(event)" id="photo-input" />
+    <span class="photo-zone-icon">📷</span>
+    <div class="photo-zone-text">Tap to photograph chart plotter</div>
+    <div class="photo-zone-sub">Supports multiple images</div>
+  </div>
+
+  <div class="section-label">Watch Notes</div>
+  <div class="card">
+    <div class="field">
+      <label>Observations / Notes</label>
+      <textarea id="notes" placeholder="Traffic observed, sail changes, incidents, wildlife, crew notes, repairs, anchorage details..."></textarea>
+    </div>
+  </div>
+
+  <button class="btn-submit" onclick="submitEntry()">LOG THIS WATCH ENTRY ⚓</button>
+  <div style="height: 28px;"></div>
+</div>
+
+<!-- LOGBOOK PANEL -->
+<div class="panel" id="panel-entries">
+  <div class="voyage-bar">
+    <div class="voyage-stat"><span class="voyage-stat-val" id="stat-entries">0</span><span class="voyage-stat-key">Entries</span></div>
+    <div class="voyage-stat"><span class="voyage-stat-val" id="stat-nm">—</span><span class="voyage-stat-key">Last Log</span></div>
+    <div class="voyage-stat"><span class="voyage-stat-val" id="stat-avg-spd">—</span><span class="voyage-stat-key">Avg SOG</span></div>
+    <div class="voyage-stat"><span class="voyage-stat-val" id="stat-wind">—</span><span class="voyage-stat-key">Avg Wind</span></div>
+  </div>
+  <div id="log-list">
+    <div class="empty-state">
+      <span class="icon">📖</span>
+      <p>No log entries yet.<br>Complete your first watch entry.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel" id="panel-settings">
+  <div class="section-label">Vessel Information</div>
+  <div class="card">
+    <div class="field">
+      <label>Vessel Name</label>
+      <input type="text" id="set-vessel" placeholder="S/V Rum Runner" oninput="saveSettings()" />
+    </div>
+    <div class="field">
+      <label>Voyage / Charter Name</label>
+      <input type="text" id="set-voyage" placeholder="BVI Spring 2025" oninput="saveSettings()" />
+    </div>
+    <div class="field">
+      <label>Vessel Type</label>
+      <select id="set-type" onchange="saveSettings()">
+        <option>Monohull Sailboat</option>
+        <option>Catamaran</option>
+        <option>Motorsailer</option>
+        <option>Powerboat</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>LOA (ft)</label>
+        <input type="number" id="set-loa" placeholder="48" oninput="saveSettings()" />
+      </div>
+      <div class="field">
+        <label>Home Port</label>
+        <input type="text" id="set-homeport" placeholder="Road Town, BVI" oninput="saveSettings()" />
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Crew Manifest</div>
+  <div class="card">
+    <div id="crew-list" style="margin-bottom: 12px;"></div>
+    <div class="grid-2">
+      <input type="text" id="crew-name-input" placeholder="Crew name" />
+      <button class="btn-outline" style="margin-top:0;" onclick="addCrew()">+ Add</button>
+    </div>
+  </div>
+
+  <div class="section-label">Watch Schedule</div>
+  <div class="card">
+    <div style="margin-bottom:14px;">
+      <div class="settings-label">Watch Pattern</div>
+      <div class="settings-sub">Set day and night watch lengths, then assign crew to each slot</div>
+    </div>
+
+    <div class="schedule-config">
+      <div class="field">
+        <label>Day watch (hrs)</label>
+        <select id="sched-day-len" onchange="buildSchedule()">
+          <option value="2">2 hrs</option>
+          <option value="3">3 hrs</option>
+          <option value="4" selected>4 hrs</option>
+          <option value="6">6 hrs</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Night watch (hrs)</label>
+        <select id="sched-night-len" onchange="buildSchedule()">
+          <option value="2">2 hrs</option>
+          <option value="3" selected>3 hrs</option>
+          <option value="4">4 hrs</option>
+          <option value="6">6 hrs</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Night starts</label>
+        <select id="sched-night-start" onchange="buildSchedule()">
+          <option value="18" selected>18:00</option>
+          <option value="19">19:00</option>
+          <option value="20">20:00</option>
+          <option value="21">21:00</option>
+          <option value="22">22:00</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 24hr timeline preview -->
+    <div class="schedule-preview" id="schedule-preview"></div>
+
+    <!-- Slot assignment -->
+    <div id="schedule-slots"></div>
+  </div>
+
+  <div class="section-label">Log Interval</div>
+  <div class="card">
+    <div style="margin-bottom:12px;">
+      <div class="settings-label">How often should entries be logged?</div>
+      <div class="settings-sub">Sets the reminder cadence shown to the watchkeeper</div>
+    </div>
+    <div class="interval-btns" id="interval-btns">
+      <button class="interval-btn active" data-interval="watch" onclick="setInterval2(this)">Each Watch<small>on handoff</small></button>
+      <button class="interval-btn" data-interval="1" onclick="setInterval2(this)">Hourly<small>every 1 hr</small></button>
+      <button class="interval-btn" data-interval="2" onclick="setInterval2(this)">2 Hours<small>every 2 hrs</small></button>
+      <button class="interval-btn" data-interval="4" onclick="setInterval2(this)">4 Hours<small>every 4 hrs</small></button>
+      <button class="interval-btn" data-interval="24" onclick="setInterval2(this)">Daily<small>once per day</small></button>
+    </div>
+    <div id="interval-note" style="margin-top:12px; font-size:12px; color:var(--text-muted); font-family:'Source Code Pro',monospace; padding: 10px; background: rgba(201,168,76,0.05); border-radius: 6px; border-left: 2px solid var(--gold-dim);"></div>
+  </div>
+
+  <div class="section-label">Export</div>
+  <div class="card">
+    <div style="margin-bottom:12px;">
+      <div class="settings-label">Export Logbook as CSV</div>
+      <div class="settings-sub">Download all entries for records or printing</div>
+    </div>
+    <button class="btn-outline" onclick="exportCSV()">⬇ Download CSV</button>
+    <button class="btn-outline" style="margin-top: 8px; border-color: var(--red); color: var(--red);" onclick="clearLog()">✕ Clear All Entries</button>
+  </div>
+  <div style="height: 24px;"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let photos = [];
+  let watchType = 'sail';
+  let entries = JSON.parse(localStorage.getItem('shiplog_entries') || '[]');
+  let settings = JSON.parse(localStorage.getItem('shiplog_settings') || '{}');
+  let crew = JSON.parse(localStorage.getItem('shiplog_crew') || '[]');
+
+  const beaufortScale = [
+    [0,'Calm'],[1,'Light Air'],[3,'Light Breeze'],[7,'Gentle Breeze'],
+    [12,'Moderate Breeze'],[18,'Fresh Breeze'],[24,'Strong Breeze'],
+    [31,'Near Gale'],[38,'Gale'],[46,'Severe Gale'],[54,'Storm'],
+    [63,'Violent Storm'],[72,'Hurricane']
+  ];
+
+  function knotsToBeaufort(kts) {
+    const spd = parseInt(kts) || 0;
+    let force = 0;
+    for (let i = 0; i < beaufortScale.length; i++) {
+      if (spd >= beaufortScale[i][0]) force = i;
+    }
+    return { force, desc: beaufortScale[force][1] };
+  }
+
+  // Watch schedule state
+  let schedule = JSON.parse(localStorage.getItem('shiplog_schedule') || 'null') || { dayLen: 4, nightLen: 3, nightStart: 18, slots: [] };
+  let logInterval = localStorage.getItem('shiplog_interval') || 'watch';
+
+  // Init
+  const now = new Date();
+  document.getElementById('entry-date').value = now.toLocaleDateString('en-GB');
+  document.getElementById('entry-time').value = now.toISOString().substring(11,16);
+
+  // Load settings
+  if (settings.vessel) { document.getElementById('set-vessel').value = settings.vessel; document.getElementById('vessel-name-display').textContent = settings.vessel; }
+  if (settings.voyage) { document.getElementById('set-voyage').value = settings.voyage; document.getElementById('voyage-name-display').textContent = settings.voyage; }
+  if (settings.type) document.getElementById('set-type').value = settings.type;
+  if (settings.loa) document.getElementById('set-loa').value = settings.loa;
+  if (settings.homeport) document.getElementById('set-homeport').value = settings.homeport;
+
+  // Load schedule config into selects
+  document.getElementById('sched-day-len').value = schedule.dayLen;
+  document.getElementById('sched-night-len').value = schedule.nightLen;
+  document.getElementById('sched-night-start').value = schedule.nightStart;
+
+  // Load interval
+  document.querySelectorAll('.interval-btn').forEach(b => b.classList.toggle('active', b.dataset.interval === logInterval));
+  updateIntervalNote();
+
+  renderCrew();
+  buildSchedule();
+  updateCurrentWatchBanner();
+  renderEntries();
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    ['log','entries','settings'].forEach((t,i) => { if (t===tab) { document.querySelectorAll('.tab')[i].classList.add('active'); document.getElementById('panel-'+t).classList.add('active'); } });
+    if (tab === 'entries') renderEntries();
+  }
+
+  function setWatch(btn) {
+    document.querySelectorAll('.watch-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    watchType = btn.dataset.watch;
+    if (watchType === 'anchor') {
+      document.getElementById('depth-body').classList.add('open');
+      document.getElementById('depth-chev').classList.add('open');
+    }
+  }
+
+  function toggleSingle(btn, groupId) {
+    const already = btn.classList.contains('active');
+    document.querySelectorAll('#' + groupId + ' .cond-btn').forEach(b => b.classList.remove('active'));
+    if (!already) btn.classList.add('active');
+  }
+
+  function toggleOpt(bodyId, chevId) {
+    document.getElementById(bodyId).classList.toggle('open');
+    document.getElementById(chevId).classList.toggle('open');
+  }
+
+  // ── WATCH SCHEDULE ──────────────────────────────────────────
+  function buildSchedule() {
+    const dayLen = parseInt(document.getElementById('sched-day-len').value);
+    const nightLen = parseInt(document.getElementById('sched-night-len').value);
+    const nightStart = parseInt(document.getElementById('sched-night-start').value);
+    const nightEnd = 6; // always ends at 06:00
+
+    // Generate all slots for 24hr cycle
+    const slots = [];
+
+    // Day period: nightEnd (06:00) → nightStart (18:00)
+    const dayMins = (nightStart - nightEnd) * 60;
+    const daySlotCount = Math.ceil(dayMins / (dayLen * 60));
+    for (let i = 0; i < daySlotCount; i++) {
+      const startH = nightEnd + i * dayLen;
+      const endH = Math.min(startH + dayLen, nightStart);
+      const existingSlot = (schedule.slots || []).find(s => s.start === startH && s.period === 'day');
+      slots.push({ period: 'day', start: startH, end: endH, crew: existingSlot ? existingSlot.crew : '' });
+    }
+
+    // Night period: nightStart (18:00) → nightEnd (+06:00 next day)
+    const nightMins = (24 - nightStart + nightEnd) * 60;
+    const nightSlotCount = Math.ceil(nightMins / (nightLen * 60));
+    for (let i = 0; i < nightSlotCount; i++) {
+      const startHRaw = nightStart + i * nightLen;
+      const startH = startHRaw >= 24 ? startHRaw - 24 : startHRaw;
+      const endHRaw = startHRaw + nightLen;
+      const endH = endHRaw >= 24 ? endHRaw - 24 : endHRaw;
+      const existingSlot = (schedule.slots || []).find(s => s.start === startH && s.period === 'night');
+      slots.push({ period: 'night', start: startH, end: endH, crew: existingSlot ? existingSlot.crew : '' });
+    }
+
+    schedule.dayLen = dayLen;
+    schedule.nightLen = nightLen;
+    schedule.nightStart = nightStart;
+    schedule.slots = slots;
+    saveSchedule();
+    renderSchedulePreview(slots, nightStart, nightEnd);
+    renderScheduleSlots(slots);
+    updateCurrentWatchBanner();
+  }
+
+  function fmt(h) {
+    return String(h % 24).padStart(2,'0') + ':00';
+  }
+
+  function renderSchedulePreview(slots, nightStart, nightEnd) {
+    const preview = document.getElementById('schedule-preview');
+    const totalMins = 24 * 60;
+    let html = '';
+    slots.forEach(s => {
+      const durationH = s.end > s.start ? s.end - s.start : (24 - s.start + s.end);
+      const pct = (durationH / 24) * 100;
+      const cls = s.period === 'day' ? 'day-seg' : 'night-seg';
+      const label = s.crew || '—';
+      html += `<div class="preview-segment ${cls}" style="flex:${pct}">
+        <span>${fmt(s.start)}</span>
+        <span class="seg-name">${label}</span>
+      </div>`;
+    });
+    preview.innerHTML = html;
+  }
+
+  function renderScheduleSlots(slots) {
+    const container = document.getElementById('schedule-slots');
+    let daySlots = slots.filter(s => s.period === 'day');
+    let nightSlots = slots.filter(s => s.period === 'night');
+
+    let html = '';
+
+    html += `<div style="font-family:'Source Code Pro',monospace;font-size:10px;color:var(--gold-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;margin-top:4px;">☀ Day Watches</div>`;
+    html += '<div class="schedule-grid">';
+    daySlots.forEach((s, i) => {
+      const idx = slots.indexOf(s);
+      html += `<div class="schedule-slot">
+        <span class="slot-time">${fmt(s.start)} – ${fmt(s.end)}</span>
+        <input type="text" placeholder="Assign crew" value="${s.crew||''}"
+          style="background:transparent;border:none;border-bottom:1px solid rgba(201,168,76,0.2);border-radius:0;padding:4px 0;font-size:13px;color:var(--text-light);font-family:'Inter',sans-serif;"
+          oninput="updateSlotCrew(${idx}, this.value)" />
+      </div>`;
+    });
+    html += '</div>';
+
+    html += `<div style="font-family:'Source Code Pro',monospace;font-size:10px;color:#7090c0;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;margin-top:14px;">🌙 Night Watches</div>`;
+    html += '<div class="schedule-grid">';
+    nightSlots.forEach((s, i) => {
+      const idx = slots.indexOf(s);
+      html += `<div class="schedule-slot">
+        <span class="slot-time">${fmt(s.start)} – ${fmt(s.end)}</span>
+        <input type="text" placeholder="Assign crew" value="${s.crew||''}"
+          style="background:transparent;border:none;border-bottom:1px solid rgba(201,168,76,0.2);border-radius:0;padding:4px 0;font-size:13px;color:var(--text-light);font-family:'Inter',sans-serif;"
+          oninput="updateSlotCrew(${idx}, this.value)" />
+      </div>`;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
+  }
+
+  function updateSlotCrew(idx, val) {
+    schedule.slots[idx].crew = val;
+    saveSchedule();
+    renderSchedulePreview(schedule.slots, schedule.nightStart, 6);
+    updateCurrentWatchBanner();
+  }
+
+  function saveSchedule() {
+    localStorage.setItem('shiplog_schedule', JSON.stringify(schedule));
+  }
+
+  function getCurrentSlot() {
+    if (!schedule.slots || !schedule.slots.length) return null;
+    const now = new Date();
+    const currentH = now.getUTCHours();
+    for (const slot of schedule.slots) {
+      const start = slot.start;
+      const end = slot.end;
+      if (end > start) {
+        if (currentH >= start && currentH < end) return slot;
+      } else {
+        // Wraps midnight
+        if (currentH >= start || currentH < end) return slot;
+      }
+    }
+    return null;
+  }
+
+  function updateCurrentWatchBanner() {
+    const banner = document.getElementById('current-watch-banner');
+    const slot = getCurrentSlot();
+    if (!slot || !slot.crew) { banner.classList.remove('visible'); return; }
+    banner.classList.add('visible');
+    document.getElementById('cwb-name').textContent = slot.crew;
+    document.getElementById('cwb-time').textContent = fmt(slot.start) + ' – ' + fmt(slot.end) + ' UTC · ' + (slot.period === 'day' ? '☀ Day' : '🌙 Night');
+    // Also pre-fill watchkeeper name
+    const wkField = document.getElementById('watchkeeper');
+    if (!wkField.value) wkField.value = slot.crew;
+  }
+
+  // ── LOG INTERVAL ─────────────────────────────────────────────
+  function setInterval2(btn) {
+    logInterval = btn.dataset.interval;
+    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    localStorage.setItem('shiplog_interval', logInterval);
+    updateIntervalNote();
+  }
+
+  function updateIntervalNote() {
+    const notes = {
+      watch: 'Log once per watch handoff. The schedule above determines when entries are expected.',
+      '1': 'Log every hour. Watchkeeper should submit an entry at the top of each hour.',
+      '2': 'Log every 2 hours. Submit entries at 00, 02, 04, 06, 08, 10, 12, 14, 16, 18, 20, 22 UTC.',
+      '4': 'Log every 4 hours. Submit entries at 00, 04, 08, 12, 16, 20 UTC.',
+      '24': 'Log once per day. One entry per 24-hour period, typically at the same time each day.'
+    };
+    const el = document.getElementById('interval-note');
+    if (el) el.textContent = notes[logInterval] || '';
+  }
+
+  function updateCompass(val) {
+    const deg = parseInt(val) || 0;
+    document.getElementById('heading-compass').style.transform = `translateX(-50%) rotate(${deg}deg)`;
+    document.getElementById('heading-deg').textContent = String(deg).padStart(3,'0') + '°';
+  }
+
+  function compassClick(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    const angle = Math.atan2(event.clientX - cx, -(event.clientY - cy)) * (180/Math.PI);
+    const deg = Math.round((angle + 360) % 360);
+    document.getElementById('cog').value = deg;
+    updateCompass(deg);
+  }
+
+  function updateBeaufort(val) {
+    const { force, desc } = knotsToBeaufort(val);
+    const pct = Math.min(100, ((parseInt(val)||0) / 70) * 100);
+    document.getElementById('beaufort-fill').style.width = pct + '%';
+    document.getElementById('beaufort-label').textContent = val ? `Bf ${force} · ${desc}` : '—';
+  }
+
+  function handlePhotos(event) {
+    Array.from(event.target.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => { photos.push(e.target.result); renderPhotoPreviews(); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderPhotoPreviews() {
+    const grid = document.getElementById('photo-preview-grid');
+    if (!photos.length) { grid.style.display = 'none'; return; }
+    grid.style.display = 'grid';
+    grid.innerHTML = photos.map((src,i) => `<div class="photo-thumb"><img src="${src}"/><button class="remove-photo" onclick="removePhoto(${i})">✕</button></div>`).join('');
+  }
+
+  function removePhoto(i) { photos.splice(i,1); renderPhotoPreviews(); }
+
+  function submitEntry() {
+    const time = document.getElementById('entry-time').value;
+    if (!time) { showToast('Please enter a time'); return; }
+
+    const windSpd = document.getElementById('wind-spd').value;
+    const { force: bfForce, desc: bfDesc } = knotsToBeaufort(windSpd);
+    const seaState = document.querySelector('#sea-state-btns .cond-btn.active')?.textContent || '';
+    const sky = document.querySelector('#sky-btns .cond-btn.active')?.textContent || '';
+
+    const entry = {
+      id: Date.now(),
+      date: document.getElementById('entry-date').value,
+      time,
+      watchkeeper: document.getElementById('watchkeeper').value || 'Unknown',
+      watchType,
+      lat: document.getElementById('lat').value,
+      lon: document.getElementById('lon').value,
+      cog: document.getElementById('cog').value,
+      sog: document.getElementById('sog').value,
+      logNm: document.getElementById('log-nm').value,
+      waypoint: document.getElementById('waypoint').value,
+      windDir: document.getElementById('wind-dir').value,
+      windSpd, bfForce, bfDesc,
+      depth: document.getElementById('depth').value,
+      baro: document.getElementById('baro').value,
+      visibility: document.getElementById('visibility').value,
+      engHours: document.getElementById('eng-hours').value,
+      rpm: document.getElementById('rpm').value,
+      fuel: document.getElementById('fuel').value,
+      seaState, sky,
+      notes: document.getElementById('notes').value,
+      photos: [...photos]
+    };
+
+    entries.unshift(entry);
+    localStorage.setItem('shiplog_entries', JSON.stringify(entries));
+    showToast('Watch entry logged ⚓');
+
+    // Reset fields
+    const ids = ['lat','lon','cog','sog','log-nm','waypoint','wind-dir','wind-spd','depth','baro','eng-hours','rpm','fuel','notes'];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('visibility').value = '';
+    document.getElementById('photo-input').value = '';
+    photos = [];
+    renderPhotoPreviews();
+    document.querySelectorAll('.cond-btn.active').forEach(b => b.classList.remove('active'));
+    document.getElementById('beaufort-fill').style.width = '0%';
+    document.getElementById('beaufort-label').textContent = '—';
+    updateCompass(0);
+    document.getElementById('entry-time').value = new Date().toISOString().substring(11,16);
+
+    setTimeout(() => switchTab('entries'), 600);
+  }
+
+  function renderEntries() {
+    const list = document.getElementById('log-list');
+    if (!entries.length) {
+      list.innerHTML = '<div class="empty-state"><span class="icon">📖</span><p>No log entries yet.<br>Complete your first watch entry.</p></div>';
+      ['stat-entries','stat-nm','stat-avg-spd','stat-wind'].forEach(id => document.getElementById(id).textContent = id==='stat-entries'?'0':'—');
+      return;
+    }
+
+    document.getElementById('stat-entries').textContent = entries.length;
+    const lastLog = entries.find(e => e.logNm);
+    document.getElementById('stat-nm').textContent = lastLog ? lastLog.logNm+' nm' : '—';
+    const speeds = entries.filter(e=>e.sog).map(e=>parseFloat(e.sog));
+    document.getElementById('stat-avg-spd').textContent = speeds.length ? (speeds.reduce((a,b)=>a+b,0)/speeds.length).toFixed(1)+' kt' : '—';
+    const winds = entries.filter(e=>e.windSpd).map(e=>parseFloat(e.windSpd));
+    document.getElementById('stat-wind').textContent = winds.length ? Math.round(winds.reduce((a,b)=>a+b,0)/winds.length)+' kt' : '—';
+
+    list.innerHTML = entries.map((e,i) => {
+      const badgeClass = e.watchType==='sail' ? 'badge-sail' : e.watchType==='anchor' ? 'badge-anchor' : 'badge-motor';
+      const badgeText = {sail:'SAIL',motor:'MOTOR','motor-sail':'MOTOR-SAIL',anchor:'ANCHOR'}[e.watchType] || e.watchType.toUpperCase();
+      const entryPhotos = (e.photos||[]).slice(0,4).map(src=>`<img src="${src}"/>`).join('');
+      const bfClass = e.bfForce !== undefined ? `bf-${e.bfForce}` : 'bf-0';
+
+      return `
+      <div class="log-entry">
+        <div class="entry-header" onclick="toggleEntry(${i})">
+          <div>
+            <div class="entry-time">${e.date} · ${e.time}Z</div>
+            <div class="entry-watchman">${e.watchkeeper}${e.waypoint ? ' · TO: '+e.waypoint : ''}</div>
+          </div>
+          <div class="entry-meta">
+            <span class="entry-badge ${badgeClass}">${badgeText}</span>
+            <span class="toggle-icon" id="toggle-${i}">▼</span>
+          </div>
+        </div>
+        <div class="entry-body" id="body-${i}">
+          <div class="entry-divider"><span>NAVIGATION</span></div>
+          <div class="stat-row">
+            <div class="stat-cell"><span class="stat-val">${e.cog ? e.cog+'°' : '—'}</span><span class="stat-key">COG</span></div>
+            <div class="stat-cell"><span class="stat-val">${e.sog ? e.sog+' kt' : '—'}</span><span class="stat-key">SOG</span></div>
+            <div class="stat-cell"><span class="stat-val">${e.logNm ? e.logNm+' nm' : '—'}</span><span class="stat-key">LOG</span></div>
+          </div>
+          ${e.lat||e.lon ? `<div style="font-family:'Source Code Pro',monospace;font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:12px;">${e.lat} &nbsp;/&nbsp; ${e.lon}</div>` : ''}
+
+          <div class="entry-divider"><span>WIND &amp; CONDITIONS</span></div>
+          <div class="stat-row">
+            <div class="stat-cell"><span class="stat-val">${e.windDir ? e.windDir+'°' : '—'}</span><span class="stat-key">WIND DIR</span></div>
+            <div class="stat-cell"><span class="stat-val">${e.windSpd ? e.windSpd+' kt' : '—'}</span><span class="stat-key">WIND SPD</span></div>
+            <div class="stat-cell" style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+              ${e.windSpd ? `<span class="bf-badge ${bfClass}">Bf ${e.bfForce}</span><span class="stat-key">${e.bfDesc}</span>` : '<span class="stat-val">—</span><span class="stat-key">BEAUFORT</span>'}
+            </div>
+          </div>
+          ${e.seaState||e.sky||e.visibility ? `<div style="font-family:'Source Code Pro',monospace;font-size:11px;color:var(--text-muted);margin-bottom:10px;text-align:center;">${[e.seaState,e.sky,e.visibility].filter(Boolean).join(' · ')}</div>` : ''}
+          ${e.baro ? `<div style="font-family:'Source Code Pro',monospace;font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;">BARO: ${e.baro} mb</div>` : ''}
+          ${e.depth ? `<div style="font-family:'Source Code Pro',monospace;font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;">DEPTH: ${e.depth} ft</div>` : ''}
+
+          ${(e.engHours||e.rpm||e.fuel) ? `
+          <div class="entry-divider"><span>ENGINE</span></div>
+          <div class="stat-row">
+            <div class="stat-cell"><span class="stat-val">${e.engHours||'—'}</span><span class="stat-key">ENG HRS</span></div>
+            <div class="stat-cell"><span class="stat-val">${e.rpm||'—'}</span><span class="stat-key">RPM</span></div>
+            <div class="stat-cell"><span class="stat-val">${e.fuel||'—'}</span><span class="stat-key">FUEL (L)</span></div>
+          </div>` : ''}
+
+          ${entryPhotos ? `<div class="entry-divider"><span>PHOTOS</span></div><div class="entry-photos">${entryPhotos}</div>` : ''}
+          ${e.notes ? `<div class="entry-divider"><span>NOTES</span></div><div class="entry-notes">${e.notes}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleEntry(i) {
+    document.getElementById('body-'+i).classList.toggle('open');
+    document.getElementById('toggle-'+i).classList.toggle('open');
+  }
+
+  function saveSettings() {
+    settings = {
+      vessel: document.getElementById('set-vessel').value,
+      voyage: document.getElementById('set-voyage').value,
+      type: document.getElementById('set-type').value,
+      loa: document.getElementById('set-loa').value,
+      homeport: document.getElementById('set-homeport').value
+    };
+    localStorage.setItem('shiplog_settings', JSON.stringify(settings));
+    document.getElementById('vessel-name-display').textContent = settings.vessel || 'S/V —';
+    document.getElementById('voyage-name-display').textContent = settings.voyage || 'Voyage Log';
+  }
+
+  function addCrew() {
+    const name = document.getElementById('crew-name-input').value.trim();
+    if (!name) return;
+    crew.push(name);
+    localStorage.setItem('shiplog_crew', JSON.stringify(crew));
+    document.getElementById('crew-name-input').value = '';
+    renderCrew();
+  }
+
+  function removeCrew(i) {
+    crew.splice(i,1);
+    localStorage.setItem('shiplog_crew', JSON.stringify(crew));
+    renderCrew();
+  }
+
+  function renderCrew() {
+    const list = document.getElementById('crew-list');
+    if (!crew.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">No crew added yet</div>'; return; }
+    list.innerHTML = crew.map((c,i) => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(201,168,76,0.08);"><span style="font-size:14px;">${c}</span><button onclick="removeCrew(${i})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 4px;">✕</button></div>`).join('');
+  }
+
+  function exportCSV() {
+    if (!entries.length) { showToast('No entries to export'); return; }
+    const headers = ['Date','Time (UTC)','Watchkeeper','Watch Type','Latitude','Longitude','COG (°)','SOG (kts)','Log (nm)','Waypoint','Wind Dir (°)','Wind Spd (kts)','Beaufort Force','Beaufort Desc','Sea State','Sky','Visibility','Depth (ft)','Barometer (mb)','Engine Hours','RPM','Fuel (L)','Notes'];
+    const rows = entries.map(e => [
+      e.date,e.time,e.watchkeeper,e.watchType,
+      e.lat,e.lon,e.cog,e.sog,e.logNm,e.waypoint,
+      e.windDir,e.windSpd,e.bfForce,e.bfDesc,
+      e.seaState,e.sky,e.visibility,
+      e.depth,e.baro,e.engHours,e.rpm,e.fuel,
+      (e.notes||'').replace(/,/g,'；')
+    ].map(v=>`"${v!==undefined&&v!==null?v:''}"`).join(','));
+
+    const csv = [headers.join(','),...rows].join('\n');
+    const blob = new Blob([csv],{type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ships-log-${(settings.voyage||'voyage').replace(/\s+/g,'-')}.csv`;
+    a.click();
+    showToast('CSV exported');
+  }
+
+  function clearLog() {
+    if (!confirm('Clear all log entries? This cannot be undone.')) return;
+    entries = [];
+    localStorage.removeItem('shiplog_entries');
+    renderEntries();
+    showToast('Log cleared');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
