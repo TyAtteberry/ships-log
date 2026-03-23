@@ -2136,26 +2136,33 @@
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target.result.split(',')[1];
-      const mimeType = file.type || 'image/jpeg';
-
-      // Always save photo to log entry
-      photos.push(e.target.result);
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      const base64 = jpegDataUrl.split(',')[1];
+      URL.revokeObjectURL(objectUrl);
+      photos.push(jpegDataUrl);
       renderPhotoPreviews();
-
-      if (!apiKey) {
-        // No key yet — prompt then run scan
-        promptApiKey({ base64, mimeType });
-        return;
-      }
-
-      runScanWithData(base64, mimeType);
-      event.target.value = '';
+      if (!apiKey) { promptApiKey({ base64, mimeType: 'image/jpeg' }); return; }
+      runScanWithData(base64, 'image/jpeg');
     };
-
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result.split(',')[1];
+        photos.push(e.target.result);
+        renderPhotoPreviews();
+        if (!apiKey) { promptApiKey({ base64, mimeType: 'image/jpeg' }); return; }
+        runScanWithData(base64, 'image/jpeg');
+      };
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
   }
 
   async function runScanWithData(base64, mimeType) {
