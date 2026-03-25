@@ -2139,11 +2139,23 @@
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
+      // Respect EXIF orientation by letting the browser handle it
+      // Cap size to 1600px max to keep base64 payload manageable
+      const maxDim = 1600;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim/w, maxDim/h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
       const base64 = jpegDataUrl.split(',')[1];
       URL.revokeObjectURL(objectUrl);
       photos.push(jpegDataUrl);
@@ -2190,9 +2202,10 @@
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-              { type: 'text', text: `You are reading a marine chart plotter screen. Extract every navigation value you can read and return ONLY a JSON object with these exact fields (use null for anything not visible):
+              { type: 'text', text: `You are reading a marine chart plotter or navigation display. The image may be rotated or taken at an angle — read it regardless of orientation. Extract every navigation value visible and return ONLY a JSON object with these exact fields (use null for anything not visible or unclear):
 {"time":"HH:MM","lat":"degrees minutes direction as shown","lon":"degrees minutes direction as shown","cog":number_or_null,"sog":number_or_null,"hdg":number_or_null,"log":number_or_null,"tws":number_or_null,"twd":number_or_null,"awa":number_or_null,"aws":number_or_null,"depth":number_or_null,"waypoint":"name_or_null","wpt_dist":number_or_null}
-Return only the JSON object, no explanation, no markdown fences.` }
+Common labels: SOG=speed over ground, COG=course over ground, HDG=heading, TWS=true wind speed, TWD=true wind direction, TWA=true wind angle, AWS=apparent wind speed, AWA=apparent wind angle, LOG=trip log in nm, POS=position, WPT=waypoint.
+Return ONLY the JSON object. No explanation, no markdown, no extra text.` }
             ]
           }]
         })
