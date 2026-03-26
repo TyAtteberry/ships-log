@@ -1237,7 +1237,7 @@
         <input type="text" id="entry-date" readonly />
       </div>
       <div class="field">
-        <label>Time (UTC)</label>
+        <label>Time <span style="font-size:10px;color:var(--text-muted);">(local)</span></label>
         <input type="time" id="entry-time" />
       </div>
     </div>
@@ -1435,6 +1435,10 @@
 
 <!-- LOGBOOK PANEL -->
 <div class="panel" id="panel-entries">
+  <div id="logbook-alerts-strip" style="display:none; margin-bottom:16px;">
+    <div style="font-family:'Source Code Pro',monospace;font-size:10px;color:var(--gold-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Active Alerts</div>
+    <div id="logbook-alerts-list"></div>
+  </div>
   <div class="voyage-bar">
     <div class="voyage-stat"><span class="voyage-stat-val" id="stat-entries">0</span><span class="voyage-stat-key">Entries</span></div>
     <div class="voyage-stat"><span class="voyage-stat-val" id="stat-nm">—</span><span class="voyage-stat-key">Last Log</span></div>
@@ -1548,16 +1552,8 @@
     </div>
   </div>
 
-  <div class="section-label">Vessel Information</div>
+  <div class="section-label">Vessel Details</div>
   <div class="card">
-    <div class="field">
-      <label>Vessel Name</label>
-      <input type="text" id="set-vessel" placeholder="S/V Rum Runner" oninput="saveSettings()" />
-    </div>
-    <div class="field">
-      <label>Voyage / Charter Name</label>
-      <input type="text" id="set-voyage" placeholder="BVI Spring 2025" oninput="saveSettings()" />
-    </div>
     <div class="field">
       <label>Vessel Type</label>
       <select id="set-type" onchange="saveSettings()">
@@ -1883,7 +1879,7 @@
   // Init
   const now = new Date();
   document.getElementById('entry-date').value = now.toLocaleDateString('en-GB');
-  document.getElementById('entry-time').value = now.toISOString().substring(11,16);
+  document.getElementById('entry-time').value = now.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit", hour12:false});
 
   // Load settings
   if (settings.vessel) { document.getElementById('set-vessel').value = settings.vessel; document.getElementById('vessel-name-display').textContent = settings.vessel; }
@@ -2204,7 +2200,8 @@
               { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
               { type: 'text', text: `You are reading a marine chart plotter or navigation display. The image may be rotated or taken at an angle — read it regardless of orientation. Extract every navigation value visible and return ONLY a JSON object with these exact fields (use null for anything not visible or unclear):
 {"time":"HH:MM","lat":"degrees minutes direction as shown","lon":"degrees minutes direction as shown","cog":number_or_null,"sog":number_or_null,"hdg":number_or_null,"log":number_or_null,"tws":number_or_null,"twd":number_or_null,"awa":number_or_null,"aws":number_or_null,"depth":number_or_null,"waypoint":"name_or_null","wpt_dist":number_or_null}
-Common labels: SOG=speed over ground, COG=course over ground, HDG=heading, TWS=true wind speed, TWD=true wind direction, TWA=true wind angle, AWS=apparent wind speed, AWA=apparent wind angle, LOG=trip log in nm, POS=position, WPT=waypoint.
+PRIORITY: time, lat, lon, sog, cog, log, twd, tws, wpt_dist, twa, awa, aws, hdg, depth, waypoint.
+Common labels: SOG/BOAT SPEED=speed, COG=course, HDG=heading, TWS=true wind speed, TWD=true wind dir, TWA=true wind angle, AWS=apparent wind speed, AWA=apparent wind angle, LOG=trip log nm, WPT DIST/DIST=waypoint distance.
 Return ONLY the JSON object. No explanation, no markdown, no extra text.` }
             ]
           }]
@@ -2342,7 +2339,7 @@ Return ONLY the JSON object. No explanation, no markdown, no extra text.` }
     document.getElementById('beaufort-fill').style.width = '0%';
     document.getElementById('beaufort-label').textContent = '—';
     updateCompass(0);
-    document.getElementById('entry-time').value = new Date().toISOString().substring(11,16);
+    document.getElementById('entry-time').value = new Date().toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit", hour12:false});
 
     setTimeout(() => switchTab('entries'), 600);
   }
@@ -2583,6 +2580,25 @@ Return ONLY the JSON object. No explanation, no markdown, no extra text.` }
   }
 
   function renderEntries() {
+    // Update logbook alerts strip
+    const lbStrip = document.getElementById('logbook-alerts-strip');
+    const lbList = document.getElementById('logbook-alerts-list');
+    if (lbStrip && lbList) {
+      const active = alerts.filter(a => a.status !== 'resolved');
+      if (active.length) {
+        lbStrip.style.display = 'block';
+        lbList.innerHTML = active.map(a => {
+          const m = alertMeta[a.type] || alertMeta.other;
+          const statusColor = a.status === 'action-taken' ? 'var(--teal-light)' : a.status === 'acknowledged' ? 'var(--gold)' : '#e07060';
+          return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(201,168,76,0.08);">' +
+            '<span>' + m.icon + '</span>' +
+            '<div><div style="font-size:13px;color:var(--text-light);">' + a.text + '</div>' +
+            '<div style="font-size:10px;font-family:Source Code Pro,monospace;color:' + statusColor + ';margin-top:2px;">' + m.label + ' · ' + a.status.toUpperCase() + ' · ' + a.raisedAt + '</div></div></div>';
+        }).join('');
+      } else {
+        lbStrip.style.display = 'none';
+      }
+    }
     const list = document.getElementById('log-list');
     if (!entries.length) {
       list.innerHTML = '<div class="empty-state"><span class="icon">📖</span><p>No log entries yet.<br>Complete your first watch entry.</p></div>';
