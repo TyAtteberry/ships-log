@@ -2198,11 +2198,31 @@
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-              { type: 'text', text: `You are reading a marine chart plotter or navigation display. The image may be rotated or taken at an angle — read it regardless of orientation. Extract every navigation value visible and return ONLY a JSON object with these exact fields (use null for anything not visible or unclear):
-{"time":"HH:MM","lat":"degrees minutes direction as shown","lon":"degrees minutes direction as shown","cog":number_or_null,"sog":number_or_null,"hdg":number_or_null,"log":number_or_null,"tws":number_or_null,"twd":number_or_null,"awa":number_or_null,"aws":number_or_null,"depth":number_or_null,"waypoint":"name_or_null","wpt_dist":number_or_null}
-PRIORITY: time, lat, lon, sog, cog, log, twd, tws, wpt_dist, twa, awa, aws, hdg, depth, waypoint.
-Common labels: SOG/BOAT SPEED=speed, COG=course, HDG=heading, TWS=true wind speed, TWD=true wind dir, TWA=true wind angle, AWS=apparent wind speed, AWA=apparent wind angle, LOG=trip log nm, WPT DIST/DIST=waypoint distance.
-Return ONLY the JSON object. No explanation, no markdown, no extra text.` }
+              { type: 'text', text: `You are reading a marine chart plotter or navigation display. The image may be rotated or sideways - read all text regardless of orientation.
+
+CRITICAL - POSITION (most important):
+- Find the field labelled POS, POSITION, or showing coordinates. It typically shows two lines - latitude then longitude.
+- Latitude (lat): copy EXACTLY as shown e.g. "S 28 22.96" or "N 18 26.3" including N/S direction
+- Longitude (lon): copy EXACTLY as shown e.g. "E 009 58.83" or "W 064 37.8" including E/W direction
+- Do NOT confuse position with heading, COG, bearing or any other number. Position always has N/S and E/W.
+
+OTHER FIELDS to extract if visible:
+- time: clock time as HH:MM
+- sog: Speed Over Ground knots (SOG or BOAT SPEED label)
+- cog: Course Over Ground degrees (COG label)
+- log: trip distance nm (LOG label)
+- tws: True Wind Speed knots (TWS label)
+- twd: True Wind Direction degrees (TWD label)
+- twa: True Wind Angle degrees (TWA label)
+- awa: Apparent Wind Angle degrees (AWA label)
+- aws: Apparent Wind Speed knots (AWS label)
+- wpt_dist: waypoint distance nm (WPT DIST or DIST label)
+- hdg: heading degrees (HDG label)
+- depth: depth (DEPTH or DBT label)
+- waypoint: waypoint name if shown
+
+Return ONLY this JSON, null for anything not visible:
+{"time":null,"lat":null,"lon":null,"cog":null,"sog":null,"hdg":null,"log":null,"tws":null,"twd":null,"twa":null,"awa":null,"aws":null,"depth":null,"waypoint":null,"wpt_dist":null}` }
             ]
           }]
         })
