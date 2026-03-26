@@ -1292,37 +1292,19 @@
       <input type="text" id="waypoint" placeholder="Road Town" />
     </div>
 
-    <div class="compass-grid">
-      <div class="compass-wrap">
-        <div class="compass" onclick="compassClick(event)">
-          <div class="compass-ring"></div>
-          <span class="compass-cardinal n">N</span>
-          <span class="compass-cardinal s">S</span>
-          <span class="compass-cardinal e">E</span>
-          <span class="compass-cardinal w">W</span>
-          <div class="compass-needle" id="heading-compass" style="transform: translateX(-50%) rotate(0deg)">
-            <div class="needle-north"></div>
-            <div class="needle-south"></div>
-          </div>
-          <div class="compass-dot"></div>
-        </div>
-        <div class="compass-label" id="heading-deg">000°</div>
-        <div class="compass-sub">tap to set COG</div>
+    <div class="grid-2">
+      <div class="field">
+        <label>True Wind Dir (°)</label>
+        <input type="number" id="wind-dir" min="0" max="359" placeholder="045" />
       </div>
-      <div>
-        <div class="field">
-          <label>True Wind Dir (°)</label>
-          <input type="number" id="wind-dir" min="0" max="359" placeholder="045" />
-        </div>
-        <div class="field">
-          <label>Wind Speed (kts)</label>
-          <input type="number" id="wind-spd" min="0" max="80" placeholder="18" oninput="updateBeaufort(this.value)" />
-        </div>
-        <div class="beaufort-row">
-          <div class="beaufort-bar"><div class="beaufort-fill" id="beaufort-fill" style="width:0%"></div></div>
-          <span class="beaufort-label" id="beaufort-label">—</span>
-        </div>
+      <div class="field">
+        <label>Wind Speed (kts)</label>
+        <input type="number" id="wind-spd" min="0" max="80" placeholder="18" oninput="updateBeaufort(this.value)" />
       </div>
+    </div>
+    <div class="beaufort-row">
+      <div class="beaufort-bar"><div class="beaufort-fill" id="beaufort-fill" style="width:0%"></div></div>
+      <span class="beaufort-label" id="beaufort-label">—</span>
     </div>
   </div>
 
@@ -2404,16 +2386,22 @@ Return ONLY this JSON, null for anything not visible:
       resolvedBy: null, resolvedAt: null
     };
 
-    alerts.unshift(alert);
-    saveAlerts();
+    // Write to Firebase if in voyage (listener will update UI)
+    // Otherwise update locally
     if (voyageCode) {
-      db.ref('voyages/' + voyageCode + '/alerts/' + alert.id).set(alert);
+      db.ref('voyages/' + voyageCode + '/alerts/' + alert.id).set(alert).then(() => {
+        showToast('Alert raised');
+      });
+    } else {
+      alerts.unshift(alert);
+      saveAlerts();
+      renderAlerts();
+      updateAlertBadge();
+      updateActiveAlertsStrip();
+      showToast('Alert raised');
     }
     document.getElementById('new-alert-text').value = '';
-    renderAlerts();
-    updateAlertBadge();
-    updateActiveAlertsStrip();
-    showToast('Alert raised');
+    document.getElementById('new-alert-by').value = '';
   }
 
   function acknowledgeAlert(id) {
@@ -2604,16 +2592,26 @@ Return ONLY this JSON, null for anything not visible:
     const lbStrip = document.getElementById('logbook-alerts-strip');
     const lbList = document.getElementById('logbook-alerts-list');
     if (lbStrip && lbList) {
-      const active = alerts.filter(a => a.status !== 'resolved');
-      if (active.length) {
+      if (alerts.length) {
         lbStrip.style.display = 'block';
-        lbList.innerHTML = active.map(a => {
+        const active = alerts.filter(a => a.status !== 'resolved');
+        lbList.innerHTML = alerts.map(a => {
           const m = alertMeta[a.type] || alertMeta.other;
-          const statusColor = a.status === 'action-taken' ? 'var(--teal-light)' : a.status === 'acknowledged' ? 'var(--gold)' : '#e07060';
-          return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(201,168,76,0.08);">' +
+          const isResolved = a.status === 'resolved';
+          const statusColor = isResolved ? '#80e080' : a.status === 'action-taken' ? 'var(--teal-light)' : a.status === 'acknowledged' ? 'var(--gold)' : '#e07060';
+          let timeline = '<div style="font-size:10px;font-family:Source Code Pro,monospace;color:var(--text-muted);margin-top:4px;line-height:1.8;">';
+          timeline += 'Raised: ' + a.raisedAt + ' by ' + a.raisedBy;
+          if (a.ackAt) timeline += '<br>Ackd: ' + a.ackAt + ' by ' + a.ackBy;
+          if (a.actionAt) timeline += '<br>Action: ' + a.actionAt + ' by ' + a.actionBy + (a.actionNote ? ' — ' + a.actionNote : '');
+          if (a.resolvedAt) timeline += '<br>Resolved: ' + a.resolvedAt + ' by ' + a.resolvedBy;
+          timeline += '</div>';
+          return '<div style="padding:8px 0;border-bottom:1px solid rgba(201,168,76,0.08);opacity:' + (isResolved ? '0.5' : '1') + ';">' +
+            '<div style="display:flex;gap:8px;align-items:baseline;">' +
             '<span>' + m.icon + '</span>' +
-            '<div><div style="font-size:13px;color:var(--text-light);">' + a.text + '</div>' +
-            '<div style="font-size:10px;font-family:Source Code Pro,monospace;color:' + statusColor + ';margin-top:2px;">' + m.label + ' · ' + a.status.toUpperCase() + ' · ' + a.raisedAt + '</div></div></div>';
+            '<div style="flex:1">' +
+            '<span style="font-size:13px;color:var(--text-light);">' + a.text + '</span>' +
+            '<span style="font-size:10px;font-family:Source Code Pro,monospace;color:' + statusColor + ';margin-left:8px;">' + a.status.toUpperCase() + '</span>' +
+            '</div></div>' + timeline + '</div>';
         }).join('');
       } else {
         lbStrip.style.display = 'none';
