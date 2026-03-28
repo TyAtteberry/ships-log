@@ -1739,6 +1739,8 @@
       showJoinedBanner(code, data.name, data.vessel);
       attachFirebaseListeners(code);
       showToast('Joined ' + data.name + ' ⚓');
+      // Switch to logbook tab to show entries immediately
+      setTimeout(() => switchTab('entries'), 1500);
     }).catch(() => showToast('Could not connect — check your connection'));
   }
 
@@ -1755,17 +1757,20 @@
     fbListeners = [];
     const entriesRef = db.ref('voyages/'+code+'/entries');
     const eListener = entriesRef.on('value', snap => {
-      if (!snap.exists()) return;
       const fb = [];
-      snap.forEach(child => {
-        const e = child.val();
-        const local = entries.find(le => le.id === e.id);
-        if (local && local.photos) e.photos = local.photos;
-        fb.push(e);
-      });
-      fb.sort((a,b) => b.id - a.id);
-      entries = fb;
-      localStorage.setItem('shiplog_entries', JSON.stringify(entries));
+      if (snap.exists()) {
+        snap.forEach(child => {
+          const e = child.val();
+          const local = entries.find(le => le.id === e.id);
+          if (local && local.photos) e.photos = local.photos;
+          fb.push(e);
+        });
+      }
+      if (fb.length > 0) {
+        fb.sort((a,b) => b.id - a.id);
+        entries = fb;
+        localStorage.setItem('shiplog_entries', JSON.stringify(entries));
+      }
       renderEntries();
     });
     fbListeners.push(() => entriesRef.off('value', eListener));
@@ -1830,11 +1835,20 @@
   function restoreVoyageState() {
     if (!voyageCode) return;
     getVoyageRef(voyageCode).once('value').then(snap => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        // Voyage no longer exists, clear stored code
+        voyageCode = ''; voyageRole = '';
+        localStorage.removeItem('shiplog_voyagecode');
+        localStorage.removeItem('shiplog_voyagerole');
+        return;
+      }
       const data = snap.val();
       if (voyageRole === 'captain') showVoyageActive(voyageCode, data.name, data.vessel);
       else showJoinedBanner(voyageCode, data.name, data.vessel);
       attachFirebaseListeners(voyageCode);
+    }).catch(() => {
+      // On error keep local data, try reconnecting silently
+      console.log('Firebase restore failed, using local data');
     });
   }
 
