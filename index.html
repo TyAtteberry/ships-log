@@ -1775,8 +1775,16 @@
         });
       }
       if (fb.length > 0) {
-        fb.sort((a,b) => b.id - a.id);
-        entries = fb;
+        // Merge Firebase entries with local entries (keep local-only ones too)
+        const fbIds = new Set(fb.map(e => e.id));
+        const localOnly = entries.filter(e => !fbIds.has(e.id));
+        // Push local-only entries up to Firebase
+        localOnly.forEach(e => {
+          db.ref('voyages/' + code + '/entries/' + e.id).set(stripPhotos(e));
+        });
+        const merged = [...fb, ...localOnly];
+        merged.sort((a,b) => b.id - a.id);
+        entries = merged;
         localStorage.setItem('shiplog_entries', JSON.stringify(entries));
       }
       renderEntries();
@@ -2413,6 +2421,18 @@ Return ONLY this JSON, null for anything not visible:
       db.ref('voyages/' + voyageCode + '/entries/' + entry.id).set(stripPhotos(entry));
     }
 
+    // Success state on button
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) {
+      submitBtn.textContent = '✓ Entry Logged!';
+      submitBtn.style.background = '#2a8a7a';
+      submitBtn.style.pointerEvents = 'none';
+      setTimeout(() => {
+        submitBtn.textContent = 'LOG THIS WATCH ENTRY ⚓';
+        submitBtn.style.background = '';
+        submitBtn.style.pointerEvents = '';
+      }, 4000);
+    }
     showToast('Watch entry logged ⚓');
 
     // Reset fields
@@ -2687,9 +2707,10 @@ Return ONLY this JSON, null for anything not visible:
     const lbStrip = document.getElementById('logbook-alerts-strip');
     const lbList = document.getElementById('logbook-alerts-list');
     if (lbStrip && lbList) {
-      if (alerts.length) {
+      const activeAlerts = alerts.filter(a => a.status !== 'resolved');
+      if (activeAlerts.length) {
         lbStrip.style.display = 'block';
-        const active = alerts.filter(a => a.status !== 'resolved');
+        const active = activeAlerts;
         lbList.innerHTML = alerts.map(a => {
           const m = alertMeta[a.type] || alertMeta.other;
           const isResolved = a.status === 'resolved';
