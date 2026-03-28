@@ -2192,12 +2192,12 @@ OTHER FIELDS to extract if visible:
 - time: clock time as HH:MM
 - sog: Speed Over Ground knots (SOG or BOAT SPEED label)
 - cog: Course Over Ground degrees (COG label)
-- log: trip distance nm (LOG label)
-- tws: True Wind Speed knots (TWS label)
-- twd: True Wind Direction degrees (TWD label)
-- twa: True Wind Angle degrees (TWA label)
-- awa: Apparent Wind Angle degrees (AWA label)
-- aws: Apparent Wind Speed knots (AWS label)
+- log: trip log distance in nm. Label is exactly "LOG" followed by "NM". This is a large cumulative number like 600.1 or 1027. Do NOT confuse with waypoint distance.
+- tws: True Wind Speed in knots. Label is exactly "TWS" with "kn" unit. This is a speed value typically 5-35 knots.
+- twd: True Wind Direction in degrees. Label is exactly "TWD". A compass bearing 0-359.
+- twa: True Wind Angle in degrees. Label is exactly "TWA". This is the angle of wind relative to boat, typically 0-180. Do NOT confuse with AWA which is apparent wind angle.
+- awa: Apparent Wind Angle in degrees. Label is exactly "AWA". Different from TWA - read the label carefully.
+- aws: Apparent Wind Speed in knots. Label is exactly "AWS" with "kn" unit. Different from TWS - read the label carefully.
 - wpt_dist: waypoint distance nm (WPT DIST or DIST label)
 - hdg: heading degrees (HDG label)
 - depth: depth (DEPTH or DBT label)
