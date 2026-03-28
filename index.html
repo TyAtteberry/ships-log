@@ -1911,8 +1911,11 @@
     if (tab === 'entries') {
       if (voyageCode && fbListeners.length === 0) {
         attachFirebaseListeners(voyageCode);
+        // Wait for Firebase to return data before rendering
+        setTimeout(renderEntries, 1500);
+      } else {
+        renderEntries();
       }
-      renderEntries();
     }
     if (tab === 'alerts') renderAlerts();
     if (tab === 'log') updateActiveAlertsStrip();
@@ -2649,7 +2652,13 @@ Return ONLY this JSON, null for anything not visible:
     // Show debug info in logbook
     const dbgEl = document.getElementById('logbook-debug');
     if (dbgEl) {
-      dbgEl.textContent = 'Voyage: ' + (voyageCode||'none') + ' · Role: ' + (voyageRole||'none') + ' · Entries: ' + entries.length + ' · Listeners: ' + fbListeners.length;
+      dbgEl.textContent = 'Voyage: ' + (voyageCode||'none') + ' · Role: ' + (voyageRole||'none') + ' · Entries in memory: ' + entries.length + ' · Listeners: ' + fbListeners.length;
+    }
+    // If we have a voyage but no entries yet, Firebase may still be loading
+    if (voyageCode && entries.length === 0 && fbListeners.length > 0) {
+      const list = document.getElementById('log-list');
+      if (list) list.innerHTML = '<div class="empty-state"><span class="icon">🔄</span><p>Loading entries from shared voyage...</p></div>';
+      return;
     }
     // Update logbook alerts strip
     const lbStrip = document.getElementById('logbook-alerts-strip');
