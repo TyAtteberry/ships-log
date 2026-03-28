@@ -1411,7 +1411,7 @@
     </div>
   </div>
 
-  <button class="btn-submit" onclick="submitEntry()">LOG THIS WATCH ENTRY ⚓</button>
+  <button class="btn-submit" id="submit-btn" onclick="submitEntry()">LOG THIS WATCH ENTRY ⚓</button>
   <div style="height: 28px;"></div>
 </div>
 
@@ -1794,9 +1794,17 @@
     const aListener = alertsRef.on('value', snap => {
       const fb = [];
       if (snap.exists()) snap.forEach(child => fb.push(child.val()));
-      fb.sort((a,b) => b.id - a.id);
-      alerts = fb;
-      localStorage.setItem('shiplog_alerts', JSON.stringify(alerts));
+      if (fb.length > 0) {
+        // Merge: push any local-only alerts to Firebase
+        const fbIds = new Set(fb.map(a => a.id));
+        const localOnly = alerts.filter(a => !fbIds.has(a.id));
+        localOnly.forEach(a => {
+          db.ref('voyages/' + code + '/alerts/' + a.id).set(a);
+        });
+        fb.sort((a,b) => b.id - a.id);
+        alerts = [...fb, ...localOnly].sort((a,b) => b.id - a.id);
+        localStorage.setItem('shiplog_alerts', JSON.stringify(alerts));
+      }
       renderAlerts(); updateAlertBadge(); updateActiveAlertsStrip();
     });
     fbListeners.push(() => alertsRef.off('value', aListener));
@@ -2491,19 +2499,17 @@ Return ONLY this JSON, null for anything not visible:
       resolvedBy: null, resolvedAt: null
     };
 
-    // Write to Firebase if in voyage (listener will update UI)
-    // Otherwise update locally
+    // Always update locally first for instant UI feedback
+    alerts.unshift(alert);
+    localStorage.setItem('shiplog_alerts', JSON.stringify(alerts));
+    renderAlerts();
+    updateAlertBadge();
+    updateActiveAlertsStrip();
+    showToast('Alert raised');
+
+    // Also sync to Firebase if in voyage
     if (voyageCode) {
-      db.ref('voyages/' + voyageCode + '/alerts/' + alert.id).set(alert).then(() => {
-        showToast('Alert raised');
-      });
-    } else {
-      alerts.unshift(alert);
-      saveAlerts();
-      renderAlerts();
-      updateAlertBadge();
-      updateActiveAlertsStrip();
-      showToast('Alert raised');
+      db.ref('voyages/' + voyageCode + '/alerts/' + alert.id).set(alert);
     }
     document.getElementById('new-alert-text').value = '';
     document.getElementById('new-alert-by').value = '';
