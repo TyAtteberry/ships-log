@@ -1417,6 +1417,7 @@
 
 <!-- LOGBOOK PANEL -->
 <div class="panel" id="panel-entries">
+  <div id="logbook-debug" style="font-family:'Source Code Pro',monospace;font-size:10px;color:var(--text-muted);padding:6px 0;margin-bottom:8px;"></div>
   <div id="logbook-alerts-strip" style="display:none; margin-bottom:16px;">
     <div style="font-family:'Source Code Pro',monospace;font-size:10px;color:var(--gold-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Active Alerts</div>
     <div id="logbook-alerts-list"></div>
@@ -2645,6 +2646,11 @@ Return ONLY this JSON, null for anything not visible:
   }
 
   function renderEntries() {
+    // Show debug info in logbook
+    const dbgEl = document.getElementById('logbook-debug');
+    if (dbgEl) {
+      dbgEl.textContent = 'Voyage: ' + (voyageCode||'none') + ' · Role: ' + (voyageRole||'none') + ' · Entries: ' + entries.length + ' · Listeners: ' + fbListeners.length;
+    }
     // Update logbook alerts strip
     const lbStrip = document.getElementById('logbook-alerts-strip');
     const lbList = document.getElementById('logbook-alerts-list');
