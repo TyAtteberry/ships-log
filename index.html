@@ -2272,18 +2272,28 @@ Return ONLY this JSON, null for anything not visible:
       }
       if (nav.lat) { document.getElementById('lat').value = nav.lat; filled.push('Lat: ' + nav.lat); }
       if (nav.lon) { document.getElementById('lon').value = nav.lon; filled.push('Lon: ' + nav.lon); }
-      if (nav.cog != null) { document.getElementById('cog').value = nav.cog; updateCompass(nav.cog); filled.push('COG: ' + nav.cog + '°'); }
-      if (nav.sog != null) { document.getElementById('sog').value = nav.sog; filled.push('SOG: ' + nav.sog + ' kt'); }
-      if (nav.log != null) { document.getElementById('log-nm').value = nav.log; filled.push('Log: ' + nav.log + ' nm'); }
-      if (nav.tws != null) { document.getElementById('wind-spd').value = nav.tws; updateBeaufort(nav.tws); filled.push('TWS: ' + nav.tws + ' kt'); }
-      if (nav.twd != null) { document.getElementById('wind-dir').value = nav.twd; filled.push('TWD: ' + nav.twd + '°'); }
-      if (nav.depth != null) {
-        document.getElementById('depth').value = nav.depth;
-        document.getElementById('depth-body').classList.add('open');
-        document.getElementById('depth-chev').classList.add('open');
-        filled.push('Depth: ' + nav.depth + ' ft');
+      function safeSet(id, val, label) {
+        try {
+          if (val == null) return;
+          const el = document.getElementById(id);
+          if (el) { el.value = val; filled.push(label + ': ' + val); }
+        } catch(e) { console.log('safeSet error', id, e); }
       }
-      if (nav.waypoint) { document.getElementById('waypoint').value = nav.waypoint; filled.push('WPT: ' + nav.waypoint); }
+      safeSet('cog', nav.cog, 'COG');
+      if (nav.cog != null) { try { updateCompass(nav.cog); } catch(e) {} }
+      safeSet('sog', nav.sog, 'SOG');
+      safeSet('log-nm', nav.log, 'Log');
+      safeSet('wind-spd', nav.tws, 'TWS');
+      if (nav.tws != null) { try { updateBeaufort(nav.tws); } catch(e) {} }
+      safeSet('wind-dir', nav.twd, 'TWD');
+      if (nav.depth != null) {
+        safeSet('depth', nav.depth, 'Depth');
+        try {
+          document.getElementById('depth-body').classList.add('open');
+          document.getElementById('depth-chev').classList.add('open');
+        } catch(e) {}
+      }
+      safeSet('waypoint', nav.waypoint, 'WPT');
 
       if (filled.length > 0) {
         document.getElementById('scan-summary').textContent = filled.join('  ·  ');
@@ -2298,7 +2308,10 @@ Return ONLY this JSON, null for anything not visible:
       btn.classList.remove('scanning');
       document.getElementById('scan-btn-icon').outerHTML = '<span id="scan-btn-icon">📷</span>';
       btnText.textContent = 'Scan Chart Plotter to Auto-Fill';
-      showToast('Scan failed — check connection');
+      const errMsg = err && err.message ? err.message : String(err);
+      showToast('Scan error: ' + errMsg.substring(0, 60));
+      document.getElementById('scan-summary').textContent = 'Error: ' + errMsg;
+      document.getElementById('scan-result').classList.add('visible');
     }
   }
 
