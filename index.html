@@ -1722,6 +1722,10 @@
       localStorage.setItem('shiplog_voyagerole', 'captain');
       entries.forEach(e => db.ref('voyages/'+code+'/entries/'+e.id).set(stripPhotos(e)));
       alerts.forEach(a => db.ref('voyages/'+code+'/alerts/'+a.id).set(a));
+      localStorage.setItem('shiplog_voyagevessel', vessel || '');
+      localStorage.setItem('shiplog_voyagename', vName || '');
+      document.getElementById('vessel-name-display').textContent = vessel || 'S/V —';
+      document.getElementById('voyage-name-display').textContent = vName || 'Voyage Log';
       showVoyageActive(code, vName, vessel);
       attachFirebaseListeners(code);
       showToast('Voyage created! Share the code with crew.');
@@ -1737,10 +1741,13 @@
       voyageCode = code; voyageRole = 'crew';
       localStorage.setItem('shiplog_voyagecode', code);
       localStorage.setItem('shiplog_voyagerole', 'crew');
+      localStorage.setItem('shiplog_voyagevessel', data.vessel || '');
+      localStorage.setItem('shiplog_voyagename', data.name || '');
+      document.getElementById('vessel-name-display').textContent = data.vessel || 'S/V —';
+      document.getElementById('voyage-name-display').textContent = data.name || 'Voyage Log';
       showJoinedBanner(code, data.name, data.vessel);
       attachFirebaseListeners(code);
       showToast('Joined ' + data.name + ' ⚓');
-      // Switch to logbook tab to show entries immediately
       setTimeout(() => switchTab('entries'), 1500);
     }).catch(() => showToast('Could not connect — check your connection'));
   }
@@ -1835,21 +1842,35 @@
 
   function restoreVoyageState() {
     if (!voyageCode) return;
+    // Update nav header immediately from stored settings
+    const storedVessel = localStorage.getItem('shiplog_voyagevessel') || '';
+    const storedName = localStorage.getItem('shiplog_voyagename') || '';
+    if (storedVessel) document.getElementById('vessel-name-display').textContent = storedVessel;
+    if (storedName) document.getElementById('voyage-name-display').textContent = storedName;
+
     getVoyageRef(voyageCode).once('value').then(snap => {
       if (!snap.exists()) {
-        // Voyage no longer exists, clear stored code
         voyageCode = ''; voyageRole = '';
         localStorage.removeItem('shiplog_voyagecode');
         localStorage.removeItem('shiplog_voyagerole');
+        localStorage.removeItem('shiplog_voyagevessel');
+        localStorage.removeItem('shiplog_voyagename');
         return;
       }
       const data = snap.val();
+      // Store vessel/voyage name for next session
+      localStorage.setItem('shiplog_voyagevessel', data.vessel || '');
+      localStorage.setItem('shiplog_voyagename', data.name || '');
+      // Update nav header
+      document.getElementById('vessel-name-display').textContent = data.vessel || 'S/V —';
+      document.getElementById('voyage-name-display').textContent = data.name || 'Voyage Log';
       if (voyageRole === 'captain') showVoyageActive(voyageCode, data.name, data.vessel);
       else showJoinedBanner(voyageCode, data.name, data.vessel);
+      // Attach listeners — they will call renderEntries when data arrives
       attachFirebaseListeners(voyageCode);
     }).catch(() => {
-      // On error keep local data, try reconnecting silently
       console.log('Firebase restore failed, using local data');
+      renderEntries();
     });
   }
 
@@ -1900,7 +1921,10 @@
   updateApiKeyStatus();
   updateAlertBadge();
   updateActiveAlertsStrip();
-  renderEntries();
+  // Only render immediately if not in a voyage (Firebase will trigger render for voyage)
+  if (!voyageCode) {
+    renderEntries();
+  }
   restoreVoyageState();
   joinVoyageFromURL();
 
@@ -2654,11 +2678,10 @@ Return ONLY this JSON, null for anything not visible:
     if (dbgEl) {
       dbgEl.textContent = 'Voyage: ' + (voyageCode||'none') + ' · Role: ' + (voyageRole||'none') + ' · Entries in memory: ' + entries.length + ' · Listeners: ' + fbListeners.length;
     }
-    // If we have a voyage but no entries yet, Firebase may still be loading
+    // If we have a voyage but no entries, show loading state but don't return
     if (voyageCode && entries.length === 0 && fbListeners.length > 0) {
       const list = document.getElementById('log-list');
       if (list) list.innerHTML = '<div class="empty-state"><span class="icon">🔄</span><p>Loading entries from shared voyage...</p></div>';
-      return;
     }
     // Update logbook alerts strip
     const lbStrip = document.getElementById('logbook-alerts-strip');
