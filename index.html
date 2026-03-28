@@ -1893,7 +1893,12 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     ['log','entries','alerts','settings'].forEach((t,i) => { if (t===tab) { document.querySelectorAll('.tab')[i].classList.add('active'); document.getElementById('panel-'+t).classList.add('active'); } });
-    if (tab === 'entries') renderEntries();
+    if (tab === 'entries') {
+      if (voyageCode && fbListeners.length === 0) {
+        attachFirebaseListeners(voyageCode);
+      }
+      renderEntries();
+    }
     if (tab === 'alerts') renderAlerts();
     if (tab === 'log') updateActiveAlertsStrip();
   }
